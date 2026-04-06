@@ -76,7 +76,7 @@ void SignalGen_UpdateVpp(float new_vpp){
     SignalGen_InitTable(new_vpp);
 
     //renew transfer
-    SignalGen_Start();  
+    ////SignalGen_Start();  
     //maybe try to delete "start timer" 
-    //HAL_DAC_Start_DMA(&hdac,DAC1_CHANNEL_1,(uint32_t*)SineTable,SINE_SAMPLES,DAC_ALIGN_12B_R);
+    HAL_DAC_Start_DMA(&hdac,DAC1_CHANNEL_1,(uint32_t*)SineTable,SINE_SAMPLES,DAC_ALIGN_12B_R);
 }
