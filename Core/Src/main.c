@@ -30,7 +30,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "signal_gen.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -103,6 +103,13 @@ int main(void)
   MX_DAC_Init();
   MX_TIM6_Init();
   /* USER CODE BEGIN 2 */
+  // generate SIGNAL TABLE
+  float Vin;
+  Vin=Cal_Vin(2.0f,5000.0f);
+  SignalGen_InitTable(Vin);
+
+  // Start SIGANL
+  SignalGen_Start();
 
   /* USER CODE END 2 */
 
