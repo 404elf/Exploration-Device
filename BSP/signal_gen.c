@@ -66,6 +66,17 @@ void SignalGen_Start(void){
 }
 
 /**
+ * @brief restart DAC-DMA Transfer(from 0 begin)
+ */
+void SignalGEN_Restart(void){
+    //must stop and start,or restart is no response.
+    HAL_DAC_Stop_DMA(&hdac,DAC_CHANNEL_1);
+
+    //andthen restart
+    HAL_DAC_Start_DMA(&hdac,DAC1_CHANNEL_1,(uint32_t*)SineTable,SINE_SAMPLES,DAC_ALIGN_12B_R);
+}
+
+/**
  * @brief Modify Vpp in RUNNING
  */
 void SignalGen_UpdateVpp(float new_vpp){
@@ -80,3 +91,4 @@ void SignalGen_UpdateVpp(float new_vpp){
     //maybe try to delete "start timer" 
     HAL_DAC_Start_DMA(&hdac,DAC1_CHANNEL_1,(uint32_t*)SineTable,SINE_SAMPLES,DAC_ALIGN_12B_R);
 }
+

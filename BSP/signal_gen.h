@@ -7,9 +7,10 @@
 #define SINE_SAMPLES 200
 
 float Cal_Vin(float Vout,float freq);
-void SignalGen_InitTable(float vpp_target);	//初始化表格
-void SignalGen_Start(void);					//启动硬件输出
-void SignalGen_UpdateVpp(float new_vpp);	//运行中动态改变幅度
-	
+void SignalGen_InitTable(float vpp_target);	//InitTable
+void SignalGen_Start(void);					//start output
+void SignalGEN_Restart(void);               //restart output
+void SignalGen_UpdateVpp(float new_vpp);	//Modify Vpp in RUNNING
+
 
 #endif

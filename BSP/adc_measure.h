@@ -1,0 +1,10 @@
+#ifndef __ADC_MEASURE_H
+#define __ADC_MEASURE_H
+
+#include "main.h"
+    
+void ADC_Measure_Start(void);   //start measurement
+float ADC_Cal_Vpp(void);    //calculate Vpp
+	
+
+#endif
