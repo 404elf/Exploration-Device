@@ -32,6 +32,8 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "signal_gen.h"
+#include "adc_measure.h"
+#include "control_sys.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -105,15 +107,24 @@ int main(void)
   MX_TIM6_Init();
   MX_ADC1_Init();
   MX_TIM2_Init();
+  MX_TIM7_Init();
   /* USER CODE BEGIN 2 */
+
   // generate SIGNAL TABLE
   float Vin;
   Vin=Cal_Vin(2.0f,5000.0f);
   SignalGen_InitTable(Vin);
+  
+  //PI
+  Control_Init();
+  ADC_Measure_Start();
 
   // Start SIGANL
   SignalGen_Start();
 
+  //Enable interrupts
+  HAL_TIM_Base_Start_IT(&htim7);
+  
   /* USER CODE END 2 */
 
   /* Infinite loop */

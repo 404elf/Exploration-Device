@@ -81,7 +81,7 @@ void SignalGEN_Restart(void){
  */
 void SignalGen_UpdateVpp(float new_vpp){
     //stop transfer
-    HAL_DAC_Stop(&hdac,DAC_CHANNEL_1);
+    HAL_DAC_Stop(&hdac,DAC_CHANNEL_1);//DAC and DMA stop together
 
     //RENEW table
     SignalGen_InitTable(new_vpp);
