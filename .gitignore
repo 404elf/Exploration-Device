@@ -9,6 +9,10 @@
 *.map
 *.lst
 *.obj
+*.bin
+*.hex
+*.htm
+
 # 这里的 List 和 Obj 是 Keil 默认的输出文件夹
 Listings/
 Objects/
