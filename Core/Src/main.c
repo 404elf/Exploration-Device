@@ -18,6 +18,7 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "adc.h"
 #include "dac.h"
 #include "dma.h"
 #include "rtc.h"
@@ -102,6 +103,8 @@ int main(void)
   MX_USB_DEVICE_Init();
   MX_DAC_Init();
   MX_TIM6_Init();
+  MX_ADC1_Init();
+  MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
   // generate SIGNAL TABLE
   float Vin;
