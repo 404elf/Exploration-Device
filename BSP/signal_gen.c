@@ -58,22 +58,31 @@ void SignalGen_InitTable(float vpp_target){
  * @brief  start timer and DAC-DMA transfer
  */
 void SignalGen_Start(void){
-    //Start timer
-    HAL_TIM_Base_Start(&htim6);
-
     //start DMA of DAC
     HAL_DAC_Start_DMA(&hdac,DAC1_CHANNEL_1,(uint32_t*)SineTable,SINE_SAMPLES,DAC_ALIGN_12B_R);
+
+    //Start timer
+    HAL_TIM_Base_Start(&htim6);
 }
 
+
+//! when it 's time,stop->wait->start.
+//! maybe waitting time is too long?it 's due to no output(Distortion)
 /**
  * @brief restart DAC-DMA Transfer(from 0 begin)
  */
 void SignalGEN_Restart(void){
     //must stop and start,or restart is no response.
     HAL_DAC_Stop_DMA(&hdac,DAC_CHANNEL_1);
+    
+    //to stop timer
+    HAL_TIM_Base_Stop(&htim6);
+    __HAL_TIM_SET_COUNTER(&htim6, 0);
 
     //andthen restart
     HAL_DAC_Start_DMA(&hdac,DAC1_CHANNEL_1,(uint32_t*)SineTable,SINE_SAMPLES,DAC_ALIGN_12B_R);
+    //let's go with timer
+    HAL_TIM_Base_Start(&htim6);
 }
 
 /**
@@ -83,12 +92,19 @@ void SignalGen_UpdateVpp(float new_vpp){
     //stop transfer
     HAL_DAC_Stop(&hdac,DAC_CHANNEL_1);//DAC and DMA stop together
 
+    //to stop timer
+    HAL_TIM_Base_Stop(&htim6);
+    __HAL_TIM_SET_COUNTER(&htim6, 0);
+
     //RENEW table
     SignalGen_InitTable(new_vpp);
-
+    
     //renew transfer
     ////SignalGen_Start();  
     //maybe try to delete "start timer" 
     HAL_DAC_Start_DMA(&hdac,DAC1_CHANNEL_1,(uint32_t*)SineTable,SINE_SAMPLES,DAC_ALIGN_12B_R);
+    
+    //let's go with timer
+    HAL_TIM_Base_Start(&htim6);
 }
 

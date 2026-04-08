@@ -122,8 +122,7 @@ int main(void)
   // Start SIGANL
   SignalGen_Start();
 
-  //Enable interrupts
-  HAL_TIM_Base_Start_IT(&htim7);
+  
   
   /* USER CODE END 2 */
 

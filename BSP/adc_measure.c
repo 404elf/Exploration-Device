@@ -2,16 +2,17 @@
 #include "adc.h"
 #include "signal_gen.h"
 #include "tim.h"
+#include "string.h"
 
 #define ADC_BUF_SIZE 512
 uint16_t ADC_Value_Buffer[ADC_BUF_SIZE];    //buffer！！！！>sample value
-
+uint16_t SafeBuffer[ADC_BUF_SIZE]; 
 /**
  * @brief start measurement
  */
 void ADC_Measure_Start(void){
-    HAL_TIM_Base_Start(&htim2); 
     HAL_ADC_Start_DMA(&hadc1,(uint32_t*)ADC_Value_Buffer,ADC_BUF_SIZE);
+    HAL_TIM_Base_Start(&htim2); 
 }
 
 /**
@@ -19,9 +20,13 @@ void ADC_Measure_Start(void){
  */
 float ADC_Cal_Vpp(void){
     uint16_t max=0,min=4095;
+
+    //! when time is going, DMA still run.
+    memcpy(SafeBuffer, ADC_Value_Buffer, ADC_BUF_SIZE);
+
     for (int i=0;i<ADC_BUF_SIZE;i++){
-        if(ADC_Value_Buffer[i]>max) max=ADC_Value_Buffer[i];
-        if(ADC_Value_Buffer[i]<min) min=ADC_Value_Buffer[i];
+        if(SafeBuffer[i]>max) max=SafeBuffer[i];
+        if(SafeBuffer[i]<min) min=SafeBuffer[i];
     }
     //Vpp is Voltage of adc of mcu 
     float Vpp=(max-min)*3.3f/4095.0f;
