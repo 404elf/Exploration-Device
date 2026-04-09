@@ -5,7 +5,8 @@
 #include "math.h"
 
 static PI_Controller vpp_ctrl;
-static volatile uint8_t ctrl_timer=0;
+////static volatile uint8_t ctrl_timer=0;
+
 /**
  * @brief PID inital£¬and open IT
  */
@@ -33,7 +34,7 @@ void Control_Init(void){
  */
 void Control_Task_100ms(void){
     //FIFO(fast in fast out)
-    if (ctrl_timer==1){
+    if (compute_flag){
         //classic Algorithm
         float current_vpp=ADC_Cal_Vpp();
         
@@ -57,10 +58,14 @@ void Control_Task_100ms(void){
         //decide to new output
         SignalGen_UpdateVpp(vpp_ctrl.Output);
 
-        ctrl_timer=0;
+        ////ctrl_timer=0;
+        compute_flag = 0;
     }
 }
 
+//!remember to delete it
+//no use it(TIM7),is for phase.
+/* ~~
 //Timed Interrupt 100ms(CubeMX open TIM7 global interrupt)
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
     if (htim->Instance == TIM7) {
@@ -68,3 +73,5 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
         ctrl_timer=1;
     }
 }
+~~ */
+

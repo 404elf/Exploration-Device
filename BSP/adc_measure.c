@@ -7,6 +7,9 @@
 #define ADC_BUF_SIZE 512
 uint16_t ADC_Value_Buffer[ADC_BUF_SIZE];    //buffer！！！！>sample value
 uint16_t SafeBuffer[ADC_BUF_SIZE]; 
+
+volatile uint16_t cycle_cnt = 0;
+volatile uint8_t compute_flag = 0;
 /**
  * @brief start measurement
  */
@@ -42,6 +45,11 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
     if (GPIO_Pin==GPIO_PIN_0){
         //if signal rise from - to +,Restart.(is for Phase alignment)
         SignalGEN_Restart();
+        cycle_cnt++;
+        if (cycle_cnt >= 500) {
+            cycle_cnt = 0;
+            compute_flag = 1; // to pid
+        }
     }
 }
 
