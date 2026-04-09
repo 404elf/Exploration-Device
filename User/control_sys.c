@@ -5,9 +5,9 @@
 #include "math.h"
 
 static PI_Controller vpp_ctrl;
-static uint8_t ctrl_timer=0;
+static volatile uint8_t ctrl_timer=0;
 /**
- * @brief PID inital
+ * @brief PID inital£¬and open IT
  */
 void Control_Init(void){
     //PI value of the first time(who need to record)
@@ -20,10 +20,10 @@ void Control_Init(void){
     //Voltage output of MCU 
     vpp_ctrl.Output=0.1f;   
 
-    //open time
-    HAL_TIM_Base_Start(&htim7); 
+    //avoid signal of IT_UPDATE (inital)
+    __HAL_TIM_CLEAR_IT(&htim7, TIM_IT_UPDATE);
 
-    //Enable interrupts
+    //open timer and Enable interrupts
     HAL_TIM_Base_Start_IT(&htim7);
 
 }
@@ -33,7 +33,7 @@ void Control_Init(void){
  */
 void Control_Task_100ms(void){
     //FIFO(fast in fast out)
-    if (ctrl_timer==0){
+    if (ctrl_timer==1){
         //classic Algorithm
         float current_vpp=ADC_Cal_Vpp();
         

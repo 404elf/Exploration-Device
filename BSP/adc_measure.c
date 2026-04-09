@@ -22,7 +22,7 @@ float ADC_Cal_Vpp(void){
     uint16_t max=0,min=4095;
 
     //! when time is going, DMA still run.
-    memcpy(SafeBuffer, ADC_Value_Buffer, ADC_BUF_SIZE);
+    memcpy(SafeBuffer, ADC_Value_Buffer, sizeof(SafeBuffer));   //the thrid param is byte
 
     for (int i=0;i<ADC_BUF_SIZE;i++){
         if(SafeBuffer[i]>max) max=SafeBuffer[i];
@@ -33,6 +33,7 @@ float ADC_Cal_Vpp(void){
     return Vpp;
 }
 
+//?maybe try Slave Mode: Reset Mod(if have time)
 /**
  * @brief calculate Vpp
  * @param GPIO_Pin:the PIN who trigger an interrupt
