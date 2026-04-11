@@ -3,6 +3,8 @@
 #include "dac.h"
 #include "tim.h"
 
+//TIM6 trigger DAC(PA4)
+
 //Internal variable - in Memory
 ////static uint16_t SineTable[SINE_SAMPLES];
 uint16_t SineTable_A[SINE_SAMPLES];
@@ -102,7 +104,7 @@ void SignalGEN_Restart(void){
     HAL_DAC_Stop_DMA(&hdac,DAC_CHANNEL_1);
     
     //andthen restart
-    HAL_DAC_Start_DMA(&hdac,DAC1_CHANNEL_1,(uint32_t*)pCurrentTable,SINE_SAMPLES,DAC_ALIGN_12B_R);
+    HAL_DAC_Start_DMA(&hdac,DAC_CHANNEL_1,(uint32_t*)pCurrentTable,SINE_SAMPLES,DAC_ALIGN_12B_R);
     
     //clear timer
     __HAL_TIM_SET_COUNTER(&htim6, 0);

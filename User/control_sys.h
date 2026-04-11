@@ -15,6 +15,7 @@ typedef struct{
 }PI_Controller;
 
 void Control_Init(void);
-void Control_Task_100ms(void);
+void PI_Task(void);
+void PI_compute(float vpp);
 
 #endif

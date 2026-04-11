@@ -32,13 +32,30 @@ void Control_Init(void){
 /**
  * @brief calculate of PI
  */
-void Control_Task_100ms(void){
+void PI_Task(void){
     //FIFO(fast in fast out)
     if (compute_flag){
-        //classic Algorithm
+        //calculate vpp
         float current_vpp=ADC_Cal_Vpp();
         
-        float error = vpp_ctrl.Target - current_vpp;
+        //changed vpp
+        PI_compute(current_vpp);
+        
+        //decide to new output
+        SignalGen_UpdateVpp(vpp_ctrl.Output);
+
+        ////ctrl_timer=0;
+        compute_flag = 0;
+    }
+}
+
+/**
+ * @brief calculate of Vout that need
+ * @param vpp:current vpp
+ */
+void PI_compute(float vpp){
+        //classic Algorithm
+        float error = vpp_ctrl.Target - vpp;
 
         //if small,stop integral
         if (fabs(error)>0.01f){
@@ -54,13 +71,6 @@ void Control_Task_100ms(void){
         //limit of Vout
         if (vpp_ctrl.Output>3.0f)vpp_ctrl.Output=3.0f;
         if (vpp_ctrl.Output<0.0f)vpp_ctrl.Output=0.0f;
-
-        //decide to new output
-        SignalGen_UpdateVpp(vpp_ctrl.Output);
-
-        ////ctrl_timer=0;
-        compute_flag = 0;
-    }
 }
 
 //!remember to delete it
