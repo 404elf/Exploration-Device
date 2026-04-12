@@ -20,13 +20,13 @@ void Control_Init(void){
 
     //Voltage output of MCU 
     vpp_ctrl.Output=0.1f;   
-
+/* ~~
     //avoid signal of IT_UPDATE (inital)
     __HAL_TIM_CLEAR_IT(&htim7, TIM_IT_UPDATE);
 
     //open timer and Enable interrupts
     HAL_TIM_Base_Start_IT(&htim7);
-
+~~ */
 }
 
 /**
