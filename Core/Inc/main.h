@@ -37,6 +37,14 @@ extern "C" {
 /* Exported types ------------------------------------------------------------*/
 /* USER CODE BEGIN ET */
 
+typedef enum {
+    MODE_TASK2_GENERATOR = 0,
+    MODE_TASK3_GENERATOR,
+    MODE_TASK4_FILTER,
+    MODE_ADVANCED_MODELING
+} SystemMode_t;
+extern SystemMode_t CurrentMode;
+
 /* USER CODE END ET */
 
 /* Exported constants --------------------------------------------------------*/
