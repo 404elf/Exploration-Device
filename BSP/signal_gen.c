@@ -2,19 +2,25 @@
 #include "math.h"
 #include "dac.h"
 #include "tim.h"
+//定周DDS   点准频率变  点就是波形精细度
+//用指针来切表
+//定频DDS   点变频率准
+//一个表分上下部分流式输出
+
 
 // 定时器tim2触发DAC(PA4)输出波形
 
 // 内部变量 - 存储在内存中的双缓冲波形表
 ////static uint16_t SineTable[SINE_SAMPLES];
-uint16_t SineTable_A[SINE_SAMPLES];
-uint16_t SineTable_B[SINE_SAMPLES];
-uint16_t *pCurrentTable = SineTable_A; // 乒乓缓冲指针，初始指向表A
+uint16_t DAC_Buffer[DAC_BUF_SIZE]; // 唯一的一段环形 DMA 缓冲
 
-#define REF_POINTS 1024
+#define REF_POINTS 512
 static float SineRef[REF_POINTS]; // 基准正弦表 (0.0~1.0)
 static float dds_phase = 0.0f;
 static float dds_phase_step = 0.0f; // 步长决定频率
+
+//修改此即可修改vpp
+static volatile float current_vpp_target = 0.0f;
 
 /**
  * @brief 计算理论输入电压Vin
@@ -48,17 +54,8 @@ float Cal_Vin(float Vout,float freq){
 }
 
 /**
- * @brief 以1024个检查点为基准，判断一步要走几个检查点
- * @param freq 输出波形的频率
- */
-void Set_DDS_Freq(float freq) {
-    //DDS（Direct Digital Synthesis）直接数字频率合成
-    //相位累加器
-    dds_phase_step = (freq / 1000000.0f) * REF_POINTS;  
-}
-
-/**
- * @brief 有着1024个点 的 基准sin表（值域为0，1）
+ * @brief 有着1024个点 的 基准sin表（值域为0，1）RE
+ * REF_POINTS决定表有几个点
  */
 void Init_SineRef(void) {
     for(int i=0; i<REF_POINTS; i++) 
@@ -66,90 +63,116 @@ void Init_SineRef(void) {
 }
 
 /**
- * @brief 
- * @param pTable 指针->在双表切换
- * @param vpp_target 目标Vpp (0.0V-3.3V)
+ * @brief DDS流式数据块填充（填表，但是每次只填一半（看后面调用））
+ * 根据不断累加的 dds_phase 动态计算下一个数据块
  */
-//SineRef[(int)dds_phase] VS sinf(2.0f * PI * i/SINE_SAMPLES)
-//前者查表，后者时实计算，
-//查表=表+数据+地址（地址移动规则）
-static void SignalGen_FillTable(uint16_t* pTable, float vpp_target) {
-    float amp = (vpp_target / 3.3f) * 4095.0f;
+static void DDS_Generate_Block(uint16_t* pBuffer, uint16_t length) {
+    //current_vpp_target在这里起作用影响
+    float amp = (current_vpp_target / 3.3f) * 4095.0f;
     float offset = 2048.0f - (amp / 2.0f);
-    for (int i=0; i<SINE_SAMPLES; i++) {
+    //上下皆做判断，可以确保从其它函数进来改变的情况不出错
+    for (int i = 0; i < length; i++) {
+        //!强行取整，高频时波动大
+        //todo 线性插值 or 增大REF_POINTS
         /*
-        是冗余吗？
+        线性插值法展示
+        int i = (int)dds_phase;
+        float frac = dds_phase - (float)i; // 提取小数部分（0.0 ~ 0.99）
+
+        // 计算两个相邻点的加权平均
+        float val = SineRef[i] * (1.0f - frac) + SineRef[(i + 1) % REF_POINTS] * frac;
+        val = val * amp + offset;
+        */
         int index = (int)dds_phase;
         if(index >= REF_POINTS) index = REF_POINTS - 1;
         else if(index < 0) index = 0;
 
         float val = SineRef[index] * amp + offset;
-        */
-        float val = (uint16_t)(SineRef[(int)dds_phase] * amp + offset);
         
-        //限制幅度
         if (val > 4095.0f) val = 4095.0f;
         if (val < 0.0f) val = 0.0f;
 
-        pTable[i]=(uint16_t)val;
-
+        pBuffer[i] = (uint16_t)val;
+        
+        // 关键点：相位在此持续累加，绝对不会断层
         dds_phase += dds_phase_step;
         if (dds_phase >= REF_POINTS) dds_phase -= REF_POINTS;
     }
 }
 
 /**
- * @brief 启动定时器及DAC的DMA数据传输开始输出
+ * @brief 系统启动波形输出
  */
-void SignalGen_Start(void){
-    // 启动DAC对应的DMA传输请求
-    HAL_DAC_Start_DMA(&hdac,DAC1_CHANNEL_1,(uint32_t*)pCurrentTable,SINE_SAMPLES,DAC_ALIGN_12B_R);
+void SignalGen_Start(float init_vpp) {
 
-    // 启动触发波形输出的定时器tim2
+    //先关，做安全操作，防止从其它地方进来
+    HAL_TIM_Base_Stop(&htim2);
+    HAL_DAC_Stop_DMA(&hdac, DAC_CHANNEL_1);
+    
+    current_vpp_target = init_vpp;
+    dds_phase = 0.0f; // 重置初始相位
+
+    //!初始vpp为0，所以开启输出也为0，流式填表填的也都是0
+    // 预先填满整个 DMA 缓冲区
+    DDS_Generate_Block(DAC_Buffer, DAC_BUF_SIZE);
+
+    //先填充，后开DMA，避免
+    HAL_DAC_Start_DMA(&hdac, DAC_CHANNEL_1, (uint32_t*)DAC_Buffer, DAC_BUF_SIZE, DAC_ALIGN_12B_R);
     HAL_TIM_Base_Start(&htim2);
 }
 
 
-//! 用于相位对齐：每次外部过零跳变触发时进行 停止->清零计数值->再启动 的操作
-//? 频繁调用可能引入短暂的空窗停顿期，需留意交界处是否在高速下产生波形失真
 /**
- * @brief 重新启动DAC-DMA传输（用于实现从0相位重新开始的相位对齐）
+ * @brief 重启波形输出
  */
-void SignalGEN_Restart(void){
-    // 首先停止定时器触发外设
-
-    __HAL_TIM_DISABLE(&htim2);
-    
-    // 必须调用Stop指令取消当前DAC的DMA传输状态，否则单独Start将无动作
-    HAL_DAC_Stop_DMA(&hdac,DAC_CHANNEL_1);
-    
-    // 使用已更新或原初指针再次完整启动一轮新传输
-    HAL_DAC_Start_DMA(&hdac,DAC_CHANNEL_1,(uint32_t*)pCurrentTable,SINE_SAMPLES,DAC_ALIGN_12B_R);
-    
-    // 清除定时器计数值使其从0开始计数实现相位对齐(从0度角开始输出)
-    __HAL_TIM_SET_COUNTER(&htim2, 0);
-    // 恢复开放定时器启动更新事件
-    __HAL_TIM_ENABLE(&htim2);
+void SignalGEN_Restart(void) {
+    //表的第0位
+    dds_phase = 0.0f; 
+    __HAL_TIM_SET_COUNTER(&htim2, 0); 
 }
 
 /**
- * @brief 在系统运行时动态更新波形输出Vpp
- * @param new_vpp 目标设定新峰峰电压(0.0V-3.3V)
+ * @brief 修改Vpp。在运行时动态更新Vpp
  */
 void SignalGen_UpdateVpp(float new_vpp) {
-    // 双表切换
-    uint16_t *pNextTable = (pCurrentTable == SineTable_A) ? SineTable_B : SineTable_A;
-    SignalGen_FillTable(pNextTable, new_vpp);
-    
-    __HAL_TIM_DISABLE(&htim2); // 停止时钟
-
-    //停表
-    HAL_DAC_Stop_DMA(&hdac, DAC_CHANNEL_1);
-    pCurrentTable = pNextTable;
-    
-    //切表，切了表自己会走
-    HAL_DAC_Start_DMA(&hdac, DAC_CHANNEL_1, (uint32_t*)pCurrentTable, SINE_SAMPLES, DAC_ALIGN_12B_R);
-    __HAL_TIM_SET_COUNTER(&htim2, 0); // 计数清零
-    __HAL_TIM_ENABLE(&htim2); // 开启
+    // 现在更新 Vpp 非常简单！只需要改写这个变量。
+    // CPU 在后台触发的 DMA 中断会实时读取这个新值，自动应用在下半段波形中。
+    // 无需调用 __HAL_TIM_DISABLE，也无需 Stop_DMA！波形完美过渡。
+    current_vpp_target = new_vpp;
 }
 
+/**
+ * @brief 修改频率。以1024个检查点为基准，判断一步要走几个检查点
+ * @param freq 输出波形的频率
+ */
+void Set_DDS_Freq(float freq) {
+    //DDS（Direct Digital Synthesis）直接数字频率合成
+    //相位累加器
+    //1000000.0f/freq 为在freq的波里一个周期能采x个点x dot/T，倒数就是 1/x T/dac_dot。每点占据1/x个周期
+    //REF_POINTS是 y base_dot/T 每周期有y基准点
+    //相乘 y/x base_dot/dac_dot 每个dac点对应几个基准点
+    dds_phase_step = (freq / 1000000.0f) * REF_POINTS;  
+}
+
+
+void task2_do(void){
+    //通过Hs计算目标Vout的Vpp
+    float vpp=Cal_Vin(2.0,5000.0);
+    SignalGen_UpdateVpp(vpp);       //更新Vpp
+    Set_DDS_Freq(5000.0);           //更新频率
+}
+
+//单表上下切换实现流式输出
+// 当前半个缓冲被 DAC 发送出去时，触发回调
+void HAL_DAC_ConvHalfCpltCallbackCh1(DAC_HandleTypeDef *hdac) {
+    // DMA 正在发后半段，CPU 赶紧算出接下来的连续 DDS 点填入前半段
+
+    //DAC是会自己输出的，所以这里是改变表的内容
+    DDS_Generate_Block(&DAC_Buffer[0], DAC_BUF_SIZE / 2);
+}
+
+// 当后半个缓冲也被 DAC 发送出去时，触发回调
+void HAL_DAC_ConvCpltCallbackCh1(DAC_HandleTypeDef *hdac) {
+    // DMA 扭头去发前半段，CPU 赶紧算出接下来的连续 DDS 点填入后半段
+    DDS_Generate_Block(&DAC_Buffer[DAC_BUF_SIZE / 2], DAC_BUF_SIZE / 2);
+}

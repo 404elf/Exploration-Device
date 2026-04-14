@@ -108,19 +108,11 @@ int main(void)
   MX_ADC1_Init();
   MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
-
-  // 生成信号表
-  float Vin;
-  Vin=Cal_Vin(2.0f,5000.0f);
-  SignalGen_InitTable(Vin);
-  
   // PI控制
   Control_Init();
   ADC_Measure_Start();
-
-  // 启动信号
-  SignalGen_Start();
-
+  
+  SignalGen_Start(1.0);
   
   
   /* USER CODE END 2 */
@@ -135,7 +127,7 @@ int main(void)
     switch (key_flag){
       case 2:
       //基础部分2
-
+      void task2_do(void);
         break;
       case 3:
       //基础部分3

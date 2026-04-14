@@ -76,10 +76,10 @@ void update_freq(void){
         // 计算当前输入信号的频率，这里的系统时钟频率为168MHz
         float current_freq = 168000000.0f / (float)period_cycles;
 
-        // 通过改变TIM6的自动重装载寄存器(ARR)同步改变输出波形的频率
+        // 通过改变tim2的自动重装载寄存器(ARR)同步改变输出波形的频率
         if (current_freq >= 800.0f && current_freq <= 55000.0f) {
             uint32_t new_arr = (uint32_t)(84000000.0f / (current_freq * 200.0f)) - 1;
-            __HAL_TIM_SET_AUTORELOAD(&htim6, new_arr);
+            __HAL_TIM_SET_AUTORELOAD(&htim2, new_arr);
         }
     }
 }
