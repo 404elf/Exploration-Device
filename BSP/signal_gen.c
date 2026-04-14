@@ -11,9 +11,14 @@ uint16_t SineTable_A[SINE_SAMPLES];
 uint16_t SineTable_B[SINE_SAMPLES];
 uint16_t *pCurrentTable = SineTable_A; // 乒乓缓冲指针，初始指向表A
 
+#define REF_POINTS 1024
+static float SineRef[REF_POINTS]; // 基准正弦表 (0.0~1.0)
+static float dds_phase = 0.0f;
+static float dds_phase_step = 0.0f; // 步长决定频率
+
 /**
  * @brief 计算理论输入电压Vin
- * @param Vout 目标输出电压(系统最终想要的输出电压)
+ * @param Vout 目标输出电压
  * @param freq 信号频率(Hz)
  * @retval 理论需给定的Vin
  */
@@ -43,39 +48,53 @@ float Cal_Vin(float Vout,float freq){
 }
 
 /**
- * @brief 初始化正弦波数据表(填充表A用作初始输出)
- * @param vpp_target 目标峰峰电压Vpp (0.0V-3.3V)
+ * @brief 以1024个检查点为基准，判断一步要走几个检查点
+ * @param freq 输出波形的频率
  */
-void SignalGen_InitTable(float vpp_target){
-    float amplitude = (vpp_target / 3.3f) * 4095.0f/2.0f;
-    for  (int i=0;i<SINE_SAMPLES;i++){
-        // ADC/DAC偏置中心值为2048 (量程0-4095)
-        float val = 2048.0f + amplitude * sinf(2.0f * PI * i/SINE_SAMPLES);
-
-        // 防止Vpp溢出导致波形削顶失真的保护机制
-        if (val>4095.0f) val = 4095.0f;
-        if (val < 0.0f) val = 0.0f;
-
-        SineTable_A[i] = (uint16_t)val;   // 转换成无符号16位整型以适配DAC数据寄存器
-    }
+void Set_DDS_Freq(float freq) {
+    //DDS（Direct Digital Synthesis）直接数字频率合成
+    //相位累加器
+    dds_phase_step = (freq / 1000000.0f) * REF_POINTS;  
 }
 
 /**
- * @brief 为指定的缓冲数组填充正弦波数据
- * @param pTable 指定待填充的目标波形缓冲数组
- * @param vpp_target 目标峰峰电压Vpp (0.0V-3.3V)
+ * @brief 有着1024个点 的 基准sin表（值域为0，1）
  */
-static void SignalGen_FillTable(uint16_t* pTable, float vpp_target){
-    float amplitude = (vpp_target / 3.3f) * 4095.0f/2.0f;
-    for  (int i=0;i<SINE_SAMPLES;i++){
-        // ADC/DAC偏置中心值为2048 (量程0-4095)
-        float val = 2048.0f + amplitude * sinf(2.0f * PI * i/SINE_SAMPLES);
+void Init_SineRef(void) {
+    for(int i=0; i<REF_POINTS; i++) 
+        SineRef[i] = (sinf(2.0f * PI * i / REF_POINTS) + 1.0f) / 2.0f;
+}
 
-        // 防止Vpp溢出导致波形削顶失真的保护机制
-        if (val>4095.0f) val = 4095.0f;
+/**
+ * @brief 
+ * @param pTable 指针->在双表切换
+ * @param vpp_target 目标Vpp (0.0V-3.3V)
+ */
+//SineRef[(int)dds_phase] VS sinf(2.0f * PI * i/SINE_SAMPLES)
+//前者查表，后者时实计算，
+//查表=表+数据+地址（地址移动规则）
+static void SignalGen_FillTable(uint16_t* pTable, float vpp_target) {
+    float amp = (vpp_target / 3.3f) * 4095.0f;
+    float offset = 2048.0f - (amp / 2.0f);
+    for (int i=0; i<SINE_SAMPLES; i++) {
+        /*
+        是冗余吗？
+        int index = (int)dds_phase;
+        if(index >= REF_POINTS) index = REF_POINTS - 1;
+        else if(index < 0) index = 0;
+
+        float val = SineRef[index] * amp + offset;
+        */
+        float val = (uint16_t)(SineRef[(int)dds_phase] * amp + offset);
+        
+        //限制幅度
+        if (val > 4095.0f) val = 4095.0f;
         if (val < 0.0f) val = 0.0f;
 
-        pTable[i] = (uint16_t)val;   // 转换成无符号16位整型以适配DAC数据寄存器
+        pTable[i]=(uint16_t)val;
+
+        dds_phase += dds_phase_step;
+        if (dds_phase >= REF_POINTS) dds_phase -= REF_POINTS;
     }
 }
 
@@ -117,25 +136,20 @@ void SignalGEN_Restart(void){
  * @brief 在系统运行时动态更新波形输出Vpp
  * @param new_vpp 目标设定新峰峰电压(0.0V-3.3V)
  */
-void SignalGen_UpdateVpp(float new_vpp){
-    // 双缓冲乒乓操作：判断当前指向表，选定处于空闲的备用表来进行数据更新装载计算处理
+void SignalGen_UpdateVpp(float new_vpp) {
+    // 双表切换
     uint16_t *pNextTable = (pCurrentTable == SineTable_A) ? SineTable_B : SineTable_A;
-
     SignalGen_FillTable(pNextTable, new_vpp);
     
-    // 短暂暂停输出定时器(寄存器级屏蔽)以准备指针切换及DAC重启
-    __HAL_TIM_DISABLE(&htim2);
+    __HAL_TIM_DISABLE(&htim2); // 停止时钟
 
-    // 终止当前传输以防止传输冲突
-    HAL_DAC_Stop_DMA(&hdac,DAC_CHANNEL_1);  // 同步停用DAC和DMA通道
-
+    //停表
+    HAL_DAC_Stop_DMA(&hdac, DAC_CHANNEL_1);
     pCurrentTable = pNextTable;
-    // 直接启动加载了新指针(内含新Vpp序列数据)的新DAC-DMA请求替代SignalGen_Start();
-    HAL_DAC_Start_DMA(&hdac,DAC1_CHANNEL_1,(uint32_t*)pCurrentTable,SINE_SAMPLES,DAC_ALIGN_12B_R);
     
-    // 清空计数器对齐复位相位
-    __HAL_TIM_SET_COUNTER(&htim2, 0);
-    // 重新开启定时器触发运转
-    __HAL_TIM_ENABLE(&htim2);
+    //切表，切了表自己会走
+    HAL_DAC_Start_DMA(&hdac, DAC_CHANNEL_1, (uint32_t*)pCurrentTable, SINE_SAMPLES, DAC_ALIGN_12B_R);
+    __HAL_TIM_SET_COUNTER(&htim2, 0); // 计数清零
+    __HAL_TIM_ENABLE(&htim2); // 开启
 }
 
