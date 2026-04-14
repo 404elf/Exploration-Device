@@ -5,13 +5,13 @@
 
 typedef struct{
 
-    float Target;   //goal
-    float Kp;   //k of Proportion
-    float Ki;   //k of Integration
+    float Target;   // 目标设定值
+    float Kp;       // 比例系数(Kp)
+    float Ki;       // 积分系数(Ki)
 
-    float Integral; //Integration(no k)
+    float Integral; // 积分累计误差值
 
-    float Output;   //value that want to change
+    float Output;   // 经过PI运算计算后的计划输出值
 }PI_Controller;
 
 void Control_Init(void);

@@ -54,7 +54,7 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-
+uint8_t key_flag = 2;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -109,16 +109,16 @@ int main(void)
   MX_TIM6_Init();
   /* USER CODE BEGIN 2 */
 
-  // generate SIGNAL TABLE
+  // 生成信号表
   float Vin;
   Vin=Cal_Vin(2.0f,5000.0f);
   SignalGen_InitTable(Vin);
   
-  //PI
+  // PI控制
   Control_Init();
   ADC_Measure_Start();
 
-  // Start SIGANL
+  // 启动信号
   SignalGen_Start();
 
   
@@ -183,6 +183,24 @@ void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
+    switch (GPIO_Pin){
+       case GPIO_PIN_0:
+        is_PI();
+        break;
+//!默认让pin1和pin2作为按键触发切换模式，后面再初始化
+      case GPIO_PIN_1:
+        key_flag+=1;
+        break;
+
+      case GPIO_PIN_2:
+        key_flag-=1;
+        break;
+
+      default:
+          break; 
+    }
+}
 
 /* USER CODE END 4 */
 
