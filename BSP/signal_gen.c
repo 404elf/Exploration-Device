@@ -3,7 +3,7 @@
 #include "dac.h"
 #include "tim.h"
 
-// 定时器TIM6触发DAC(PA4)输出波形
+// 定时器tim2触发DAC(PA4)输出波形
 
 // 内部变量 - 存储在内存中的双缓冲波形表
 ////static uint16_t SineTable[SINE_SAMPLES];
@@ -86,8 +86,8 @@ void SignalGen_Start(void){
     // 启动DAC对应的DMA传输请求
     HAL_DAC_Start_DMA(&hdac,DAC1_CHANNEL_1,(uint32_t*)pCurrentTable,SINE_SAMPLES,DAC_ALIGN_12B_R);
 
-    // 启动触发波形输出的定时器TIM6
-    HAL_TIM_Base_Start(&htim6);
+    // 启动触发波形输出的定时器tim2
+    HAL_TIM_Base_Start(&htim2);
 }
 
 
@@ -99,7 +99,7 @@ void SignalGen_Start(void){
 void SignalGEN_Restart(void){
     // 首先停止定时器触发外设
 
-    __HAL_TIM_DISABLE(&htim6);
+    __HAL_TIM_DISABLE(&htim2);
     
     // 必须调用Stop指令取消当前DAC的DMA传输状态，否则单独Start将无动作
     HAL_DAC_Stop_DMA(&hdac,DAC_CHANNEL_1);
@@ -108,9 +108,9 @@ void SignalGEN_Restart(void){
     HAL_DAC_Start_DMA(&hdac,DAC_CHANNEL_1,(uint32_t*)pCurrentTable,SINE_SAMPLES,DAC_ALIGN_12B_R);
     
     // 清除定时器计数值使其从0开始计数实现相位对齐(从0度角开始输出)
-    __HAL_TIM_SET_COUNTER(&htim6, 0);
+    __HAL_TIM_SET_COUNTER(&htim2, 0);
     // 恢复开放定时器启动更新事件
-    __HAL_TIM_ENABLE(&htim6);
+    __HAL_TIM_ENABLE(&htim2);
 }
 
 /**
@@ -124,7 +124,7 @@ void SignalGen_UpdateVpp(float new_vpp){
     SignalGen_FillTable(pNextTable, new_vpp);
     
     // 短暂暂停输出定时器(寄存器级屏蔽)以准备指针切换及DAC重启
-    __HAL_TIM_DISABLE(&htim6);
+    __HAL_TIM_DISABLE(&htim2);
 
     // 终止当前传输以防止传输冲突
     HAL_DAC_Stop_DMA(&hdac,DAC_CHANNEL_1);  // 同步停用DAC和DMA通道
@@ -134,8 +134,8 @@ void SignalGen_UpdateVpp(float new_vpp){
     HAL_DAC_Start_DMA(&hdac,DAC1_CHANNEL_1,(uint32_t*)pCurrentTable,SINE_SAMPLES,DAC_ALIGN_12B_R);
     
     // 清空计数器对齐复位相位
-    __HAL_TIM_SET_COUNTER(&htim6, 0);
+    __HAL_TIM_SET_COUNTER(&htim2, 0);
     // 重新开启定时器触发运转
-    __HAL_TIM_ENABLE(&htim6);
+    __HAL_TIM_ENABLE(&htim2);
 }
 

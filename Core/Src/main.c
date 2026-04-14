@@ -34,6 +34,7 @@
 #include "signal_gen.h"
 #include "adc_measure.h"
 #include "control_sys.h"
+#include "key.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -54,7 +55,7 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-uint8_t key_flag = 2;
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -106,7 +107,6 @@ int main(void)
   MX_DAC_Init();
   MX_ADC1_Init();
   MX_TIM2_Init();
-  MX_TIM6_Init();
   /* USER CODE BEGIN 2 */
 
   // 生成信号表
@@ -132,6 +132,30 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+    switch (key_flag){
+      case 2:
+      //基础部分2
+
+        break;
+      case 3:
+      //基础部分3
+
+        break;
+      case 4:
+      //基础部分4
+
+        break;
+      case 5:
+      //发挥1
+
+        break;
+      case 6:
+      //发挥2
+
+      break;
+      default:
+        break; 
+    }
   }
   /* USER CODE END 3 */
 }
@@ -184,22 +208,7 @@ void SystemClock_Config(void)
 
 /* USER CODE BEGIN 4 */
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
-    switch (GPIO_Pin){
-       case GPIO_PIN_0:
-        is_PI();
-        break;
-//!默认让pin1和pin2作为按键触发切换模式，后面再初始化
-      case GPIO_PIN_1:
-        key_flag+=1;
-        break;
-
-      case GPIO_PIN_2:
-        key_flag-=1;
-        break;
-
-      default:
-          break; 
-    }
+    Key_handler(GPIO_Pin);
 }
 
 /* USER CODE END 4 */
