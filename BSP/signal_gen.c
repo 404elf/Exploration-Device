@@ -12,9 +12,9 @@
 
 // 内部变量 - 存储在内存中的双缓冲波形表
 ////static uint16_t SineTable[SINE_SAMPLES];
-uint16_t DAC_Buffer[DAC_BUF_SIZE]; // 唯一的一段环形 DMA 缓冲
+static uint16_t DAC_Buffer[DAC_BUF_SIZE]; // 唯一的一段环形 DMA 缓冲
 
-#define REF_POINTS 512
+#define REF_POINTS 1024
 static float SineRef[REF_POINTS]; // 基准正弦表 (0.0~1.0)
 static float dds_phase = 0.0f;
 static float dds_phase_step = 0.0f; // 步长决定频率
@@ -72,22 +72,23 @@ static void DDS_Generate_Block(uint16_t* pBuffer, uint16_t length) {
     float offset = 2048.0f - (amp / 2.0f);
     //上下皆做判断，可以确保从其它函数进来改变的情况不出错
     for (int i = 0; i < length; i++) {
-        //!强行取整，高频时波动大
-        //todo 线性插值 or 增大REF_POINTS
-        /*
-        线性插值法展示
-        int i = (int)dds_phase;
-        float frac = dds_phase - (float)i; // 提取小数部分（0.0 ~ 0.99）
+        // 防御性处理，防止内存越界
+        if (dds_phase >= (float)REF_POINTS) dds_phase -= (float)REF_POINTS;
+        if (dds_phase < 0) dds_phase = 0; 
 
-        // 计算两个相邻点的加权平均
-        float val = SineRef[i] * (1.0f - frac) + SineRef[(i + 1) % REF_POINTS] * frac;
-        val = val * amp + offset;
-        */
-        int index = (int)dds_phase;
-        if(index >= REF_POINTS) index = REF_POINTS - 1;
-        else if(index < 0) index = 0;
+        //线性插值法
+        int index0 = (int)dds_phase;
+        int index1 = index0 + 1;
+        float frac = dds_phase - (float)index0;
+        
+        if (index1 >= REF_POINTS) index1 = 0;
 
-        float val = SineRef[index] * amp + offset;
+        //插值核心
+        float s0 = SineRef[index0];
+        float s1 = SineRef[index1];
+        float interpolated_sine = s0 + frac * (s1 - s0);  //距离决定权重
+
+        float val = interpolated_sine * amp + offset;
         
         if (val > 4095.0f) val = 4095.0f;
         if (val < 0.0f) val = 0.0f;
@@ -96,7 +97,8 @@ static void DDS_Generate_Block(uint16_t* pBuffer, uint16_t length) {
         
         // 关键点：相位在此持续累加，绝对不会断层
         dds_phase += dds_phase_step;
-        if (dds_phase >= REF_POINTS) dds_phase -= REF_POINTS;
+        if (dds_phase >= (float)REF_POINTS) dds_phase -= (float)REF_POINTS;
+
     }
 }
 

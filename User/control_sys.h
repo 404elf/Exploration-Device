@@ -4,7 +4,6 @@
 #include "main.h"
 
 typedef struct{
-
     float Target;   // 目标设定值
     float Kp;       // 比例系数(Kp)
     float Ki;       // 积分系数(Ki)

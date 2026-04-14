@@ -111,7 +111,7 @@ int main(void)
   // PI控制
   Control_Init();
   ADC_Measure_Start();
-  
+
   SignalGen_Start(1.0);
   
   
@@ -127,11 +127,11 @@ int main(void)
     switch (key_flag){
       case 2:
       //基础部分2
-      void task2_do(void);
+      task2_do();
         break;
       case 3:
       //基础部分3
-
+      PI_Task();
         break;
       case 4:
       //基础部分4

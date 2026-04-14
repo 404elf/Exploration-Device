@@ -14,6 +14,7 @@ void Key_handler(uint16_t GPIO_Pin){
 
     switch (GPIO_Pin){
        case GPIO_PIN_0:
+        //用于计数cnt++，加满判断
         is_PI();
         break;
 //!默认让pin1和pin2作为按键触发切换模式，后面再初始化

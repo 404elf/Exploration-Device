@@ -10,11 +10,11 @@
 #define DC_GAIN 2.0f // 系统增益参数
 
 // 定时器触发的系统ADC/DAC采样率(Hz)
-#define SAMPLE_RATE 500000.0f
+#define SAMPLE_RATE 1000000.0f
 
 
-uint16_t ADC_Buffer[FILTER_BUF_SIZE]; // DMA自动写入的ADC采集缓冲区
-uint16_t DAC_Buffer[FILTER_BUF_SIZE]; // DMA自动读出的DAC波形缓冲区域
+static uint16_t ADC_Buffer[FILTER_BUF_SIZE]; // DMA自动写入的ADC采集缓冲区
+static uint16_t DAC_Buffer[FILTER_BUF_SIZE]; // DMA自动读出的DAC波形缓冲区域
 
 // 差分方程系统系数：b0~b2对应分子(输入)，a1~a2对应分母(输出)
 static float b0 = 0.05f, b1 = 0.10f, b2 = 0.05f;
