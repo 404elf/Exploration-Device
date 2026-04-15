@@ -1150,6 +1150,16 @@
               <FileType>5</FileType>
               <FilePath>..\BSP\key.h</FilePath>
             </File>
+            <File>
+              <FileName>OLED.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\BSP\OLED.c</FilePath>
+            </File>
+            <File>
+              <FileName>OLED.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\BSP\OLED.h</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -1174,6 +1184,16 @@
               <FileName>dsp_filter.h</FileName>
               <FileType>5</FileType>
               <FilePath>..\User\dsp_filter.h</FilePath>
+            </File>
+            <File>
+              <FileName>determine_type.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\User\determine_type.c</FilePath>
+            </File>
+            <File>
+              <FileName>determine_type.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\User\determine_type.h</FilePath>
             </File>
           </Files>
         </Group>

@@ -36,6 +36,8 @@
 #include "control_sys.h"
 #include "key.h"
 #include "dsp_filter.h"
+#include "determine_type.h"
+#include "OLED.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -110,6 +112,9 @@ int main(void)
   MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
   
+  //OLED初始化
+  OLED_Init();
+  OLED_Clear();
   // PI控制
   Control_Init();
   //计算IIR滤波系数，提前算好
@@ -159,7 +164,7 @@ int main(void)
           break;
         case 5:
         //发挥1
-
+        if (tab_flag)  task5_do();
           break;
         case 6:
         //发挥2
