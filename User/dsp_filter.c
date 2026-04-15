@@ -2,6 +2,15 @@
 #include "adc.h"
 #include "dac.h"
 #include "tim.h"
+#include "string.h"
+
+////#include "arm_math.h"   //优化IIR 函数
+////static arm_biquad_casd_df1_inst_f32 iir_instance;
+////static float32_t iir_state[4];  //历史状态，只有历史的，才叫历史状态
+////static float32_t iir_coeffs[5]; 
+
+////static float32_t float_in_buf[FILTER_BUF_SIZE / 2];
+////static float32_t float_out_buf[FILTER_BUF_SIZE / 2];
 
 // H(s)传递函数分母系数(A2*s^2 + A1*s + A0)
 #define A2_COEF 2.397e-10f
@@ -24,7 +33,7 @@ static float a1 = -1.20f, a2 = 0.40f;
 static float x_n1 = 0.0f, x_n2 = 0.0f;
 static float y_n1 = 0.0f, y_n2 = 0.0f;
 /**
- * @brief 基于双线性变换法自动计算IIR数字滤波器系数
+ * @brief 计算IIR系数
  */
 void Calculate_IIR_Coeffs(void) {
     //  计算常数 K = 2 * Fs（这里使用了简化的双线性置换法实现）
@@ -81,6 +90,7 @@ static void Process_IIR_Block(uint16_t* pIn, uint16_t* pOut, uint16_t length) {
  * @brief 初始化滤波状态系统的缓存变量数据（不强制全0可在此设定初指）
  */
 void Task4_Filter_Init(void) {
+    //历史缓存清零
     x_n1 = 0.0f; x_n2 = 0.0f;
     y_n1 = 0.0f; y_n2 = 0.0f;
 }
@@ -89,16 +99,31 @@ void Task4_Filter_Init(void) {
  * @brief 启动系统流：依次打开DAC输出 -> 开启ADC采集启动更新 -> 启动触发系统的心跳源(TIM2定时器)
  */
 void Task4_Filter_Start(void) {
-    HAL_DAC_Start_DMA(&hdac, DAC_CHANNEL_1, (uint32_t*)DAC_Buffer, FILTER_BUF_SIZE, DAC_ALIGN_12B_R);
+    __HAL_TIM_DISABLE(&htim2);
+
+    //先关后开
+    //任务切换，防止表污染，切换表前要先停
+    HAL_DAC_Stop_DMA(&hdac, DAC_CHANNEL_1);
+    HAL_ADC_Stop_DMA(&hadc1);
+
+    __HAL_TIM_SET_COUNTER(&htim2, 0);
+
+    // 清零缓冲区
+    memset(DAC_Buffer, 0, sizeof(DAC_Buffer));
+    memset(ADC_Buffer, 0, sizeof(ADC_Buffer));
+
+    // 先ADC再DAC
     HAL_ADC_Start_DMA(&hadc1, (uint32_t*)ADC_Buffer, FILTER_BUF_SIZE);
-    HAL_TIM_Base_Start(&htim2); 
-}
+    HAL_DAC_Start_DMA(&hdac, DAC_CHANNEL_1, (uint32_t*)DAC_Buffer, FILTER_BUF_SIZE, DAC_ALIGN_12B_R);
+
+    __HAL_TIM_ENABLE(&htim2);
+}   
 
 /**
  * @brief 暂停处理计算系统接口：暂停控制心跳源定时器TIM2 -> 停用ADC采样DMA读取 -> 停止DAC波形输出驱动DMA
  */
 void Task4_Filter_Stop(void) {
-    HAL_TIM_Base_Stop(&htim2);
+    // 停用ADC采样DMA读取与DAC波形输出驱动DMA
     HAL_ADC_Stop_DMA(&hadc1);
     HAL_DAC_Stop_DMA(&hdac, DAC_CHANNEL_1);
 }
@@ -117,4 +142,9 @@ void Task4_ADC_FullCpltCallback(void) {
     Process_IIR_Block(&ADC_Buffer[FILTER_BUF_SIZE / 2], &DAC_Buffer[FILTER_BUF_SIZE / 2], FILTER_BUF_SIZE / 2);
 }
 
+
+void Task4_do(void){
+    Task4_Filter_Init();
+    Task4_Filter_Start();
+};
 

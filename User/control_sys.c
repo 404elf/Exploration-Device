@@ -62,5 +62,7 @@ void PI_Task(void){
             PI_compute(current_vpp);
             // 修正真实电压
             SignalGen_UpdateVpp(vpp_ctrl.Output);
+            //确保同频
+            update_freq();
         }
 }

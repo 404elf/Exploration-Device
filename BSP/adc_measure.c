@@ -24,7 +24,7 @@ volatile uint8_t  freq_update_flag = 0; // 频率更新标志，通知主应用新数据到达
  */
 void ADC_Measure_Start(void){
     HAL_ADC_Start_DMA(&hadc1,(uint32_t*)ADC_Value_Buffer,ADC_BUF_SIZE);
-    HAL_TIM_Base_Start(&htim2); 
+    ////HAL_TIM_Base_Start(&htim2); 
 }
 
 /**
@@ -74,7 +74,7 @@ void is_PI(void){
 
 //! 需要注意：如果刚上电或刚切换到此模式，首次触发时由于last_time为0，算出的差值可能会很大导致突变
 /**
- * @brief 计算输入波形频率，并实现同频输出
+ * @brief 计算输入波形频率，并实现同频输出（并确保相位差恒定）
  */
 void update_freq(void){
     if (last_time==0) {
@@ -99,16 +99,43 @@ void update_freq(void){
     }
 }
 
+/**
+ * @brief 乒乓缓存前半段完成中断(半满)：DMA仍在继续往后半段装入数据，此刻CPU趁机处理刚装好的前半段(0 ~ 99)
+ */
+void Task3_ADC_HalfCpltCallback(void) {
+     ADC_Cal_Vpp(&ADC_Value_Buffer[0], ADC_BUF_SIZE / 2);
+}
+
+/**
+ * @brief 乒乓缓存全满完成中断：DMA发生回放绕并开始重写前半段数据，此刻CPU趁机处理刚装好的后半段(100 ~ 199)
+ */
+void Task3_ADC_FullCpltCallback(void) {
+    ADC_Cal_Vpp(&ADC_Value_Buffer[ADC_BUF_SIZE / 2], ADC_BUF_SIZE / 2);
+}
+
+void task3_do(void) {
+    // 夺回 ADC 控制权
+    HAL_ADC_Stop_DMA(&hadc1);
+    memset(ADC_Value_Buffer, 0, sizeof(ADC_Value_Buffer));
+    HAL_ADC_Start_DMA(&hadc1, (uint32_t*)ADC_Value_Buffer, ADC_BUF_SIZE);
+    
+    // 如果任务3也需要输出波形，这里再夺回 DAC
+    SignalGen_Resume();
+}
+
+//因为ADC走两套逻辑，所以中断就搬迁了
 //与隔壁signal_gen.c的逻辑相同
+/*
 void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef* hadc) {
     if (hadc->Instance == ADC1) {
-        ADC_Cal_Vpp(&ADC_Value_Buffer[0], ADC_BUF_SIZE / 2);
+       
     }
 }
 
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc) {
     if (hadc->Instance == ADC1) {
-        ADC_Cal_Vpp(&ADC_Value_Buffer[ADC_BUF_SIZE / 2], ADC_BUF_SIZE / 2);
+        
     }
 }
+*/
 

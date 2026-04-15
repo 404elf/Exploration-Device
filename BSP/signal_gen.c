@@ -106,9 +106,8 @@ static void DDS_Generate_Block(uint16_t* pBuffer, uint16_t length) {
  * @brief 系统启动波形输出
  */
 void SignalGen_Start(float init_vpp) {
-
-    //先关，做安全操作，防止从其它地方进来
-    HAL_TIM_Base_Stop(&htim2);
+    // 因为你在全局时钟规划中已经去掉了这里的 TIM2 停用，我们不用停 TIM2
+    // 但我们可以停用 DAC_DMA，防止旧数据冲突
     HAL_DAC_Stop_DMA(&hdac, DAC_CHANNEL_1);
     
     current_vpp_target = init_vpp;
@@ -118,9 +117,16 @@ void SignalGen_Start(float init_vpp) {
     // 预先填满整个 DMA 缓冲区
     DDS_Generate_Block(DAC_Buffer, DAC_BUF_SIZE);
 
-    //先填充，后开DMA，避免
+    //先填充，后开DMA，避免毛刺
     HAL_DAC_Start_DMA(&hdac, DAC_CHANNEL_1, (uint32_t*)DAC_Buffer, DAC_BUF_SIZE, DAC_ALIGN_12B_R);
-    HAL_TIM_Base_Start(&htim2);
+}
+
+/**
+ * @brief 重新接管DAC DMA 控制权
+ */
+void SignalGen_Resume(void){
+    HAL_DAC_Stop_DMA(&hdac, DAC_CHANNEL_1);
+    HAL_DAC_Start_DMA(&hdac, DAC_CHANNEL_1, (uint32_t*)DAC_Buffer, DAC_BUF_SIZE, DAC_ALIGN_12B_R);
 }
 
 
@@ -158,23 +164,26 @@ void Set_DDS_Freq(float freq) {
 
 
 void task2_do(void){
+    HAL_DAC_Stop_DMA(&hdac, DAC_CHANNEL_1);
+
     //通过Hs计算目标Vout的Vpp
     float vpp=Cal_Vin(2.0,5000.0);
     SignalGen_UpdateVpp(vpp);       //更新Vpp
     Set_DDS_Freq(5000.0);           //更新频率
+
+    HAL_DAC_Start_DMA(&hdac, DAC_CHANNEL_1, (uint32_t*)DAC_Buffer, DAC_BUF_SIZE, DAC_ALIGN_12B_R);
 }
 
-//单表上下切换实现流式输出
+// 单表上下切换实现流式输出
 // 当前半个缓冲被 DAC 发送出去时，触发回调
-void HAL_DAC_ConvHalfCpltCallbackCh1(DAC_HandleTypeDef *hdac) {
+void Task2_3_DAC_HalfCpltCallback(void) {
     // DMA 正在发后半段，CPU 赶紧算出接下来的连续 DDS 点填入前半段
-
-    //DAC是会自己输出的，所以这里是改变表的内容
+    // DAC是会自己输出的，所以这里是改变表的内容
     DDS_Generate_Block(&DAC_Buffer[0], DAC_BUF_SIZE / 2);
 }
 
 // 当后半个缓冲也被 DAC 发送出去时，触发回调
-void HAL_DAC_ConvCpltCallbackCh1(DAC_HandleTypeDef *hdac) {
+void Task2_3_DAC_FullCpltCallback(void) {
     // DMA 扭头去发前半段，CPU 赶紧算出接下来的连续 DDS 点填入后半段
     DDS_Generate_Block(&DAC_Buffer[DAC_BUF_SIZE / 2], DAC_BUF_SIZE / 2);
 }

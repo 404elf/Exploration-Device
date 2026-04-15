@@ -35,6 +35,7 @@
 #include "adc_measure.h"
 #include "control_sys.h"
 #include "key.h"
+#include "dsp_filter.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -108,13 +109,22 @@ int main(void)
   MX_ADC1_Init();
   MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
+  
   // PI控制
   Control_Init();
+  //计算IIR滤波系数，提前算好
+  Calculate_IIR_Coeffs();
   ADC_Measure_Start();
-
   SignalGen_Start(1.0);
+
+  //顺手清零
+  __HAL_TIM_SET_COUNTER(&htim2,0);
+  //目前只用上了这一个时钟
+  HAL_TIM_Base_Start(&htim2);
   
-  
+
+  static uint8_t key_last_flag =0;
+  static uint8_t tab_flag=0;
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -124,30 +134,40 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-    switch (key_flag){
-      case 2:
-      //基础部分2
-      task2_do();
-        break;
-      case 3:
-      //基础部分3
-      PI_Task();
-        break;
-      case 4:
-      //基础部分4
-
-        break;
-      case 5:
-      //发挥1
-
-        break;
-      case 6:
-      //发挥2
-
-      break;
-      default:
-        break; 
+    
+    if (key_last_flag!=key_flag)
+    {
+      key_last_flag=key_flag;
+      tab_flag=1;
     }
+    else{
+      tab_flag=0;
+    }
+      switch (key_flag){
+        case 2:
+        //基础部分2
+        if (tab_flag) task2_do();
+          break;
+        case 3:
+        //基础部分3
+        if (tab_flag) task3_do();
+        PI_Task();
+          break;
+        case 4:
+        //基础部分4
+        if (tab_flag)  Task4_do();
+          break;
+        case 5:
+        //发挥1
+
+          break;
+        case 6:
+        //发挥2
+
+        break;
+        default:
+          break; 
+      }
   }
   /* USER CODE END 3 */
 }
@@ -202,6 +222,54 @@ void SystemClock_Config(void)
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
     Key_handler(GPIO_Pin);
 }
+void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef* hadc) {
+    if (hadc->Instance == ADC1) {
+       switch(key_flag){
+          case 3:
+          Task3_ADC_HalfCpltCallback();
+          break;
+          case 4:
+          Task4_ADC_HalfCpltCallback();
+          break;
+
+          default:
+            break; 
+       }
+    }
+}
+
+void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc) {
+    if (hadc->Instance == ADC1) {
+       switch(key_flag){
+          case 3:
+          Task3_ADC_FullCpltCallback();
+          break;
+          case 4:
+          Task4_ADC_FullCpltCallback();
+          break;
+          
+          default:
+            break; 
+       }
+    }
+}
+
+void HAL_DAC_ConvHalfCpltCallbackCh1(DAC_HandleTypeDef *hdac) {
+    if (hdac->Instance == DAC) {
+        if (key_flag == 2 || key_flag == 3) {
+            Task2_3_DAC_HalfCpltCallback();
+        }
+    }
+}
+
+void HAL_DAC_ConvCpltCallbackCh1(DAC_HandleTypeDef *hdac) {
+    if (hdac->Instance == DAC) {
+        if (key_flag == 2 || key_flag == 3) {
+            Task2_3_DAC_FullCpltCallback();
+        }
+    }
+}
+
 
 /* USER CODE END 4 */
 

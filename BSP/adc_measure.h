@@ -10,4 +10,10 @@ void ADC_Cal_Vpp(uint16_t* pBuffer, uint16_t length);    // º∆À„Vpp∑Â∑Â÷µ
 void update_freq(void);
 void is_PI(void);
 float Get_Vpp(void);
+
+
+void task3_do(void);
+void Task3_ADC_HalfCpltCallback(void);
+void Task3_ADC_FullCpltCallback(void);
+
 #endif
