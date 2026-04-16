@@ -167,6 +167,12 @@ int main(void)
         if (tab_flag)  task5_do();
           break;
         case 6:
+        if (tab_flag){
+          OLED_Clear();
+          OLED_ShowCenterString("Press to auto mode.");
+        }
+        break;  
+        case 7:
         //·¢»Ó2
 
         break;

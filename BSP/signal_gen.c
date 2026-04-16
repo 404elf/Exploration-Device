@@ -22,6 +22,8 @@ static float dds_phase_step = 0.0f; // 步长决定频率
 //修改此即可修改vpp
 static volatile float current_vpp_target = 0.0f;
 
+
+//该函数的Vin和Vout是对于已知模型电路来说的
 /**
  * @brief 计算理论输入电压Vin
  * @param Vout 目标输出电压

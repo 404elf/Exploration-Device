@@ -4,7 +4,7 @@
 #include "tim.h"
 #include "string.h"
 
-#define ADC_BUF_SIZE 512 //为了Vpp测量更准确，可以适当开大
+#define ADC_BUF_SIZE 4096 //为了Vpp测量更准确，可以适当开大
 uint16_t ADC_Value_Buffer[ADC_BUF_SIZE];    // ADC采样值缓冲区
 //全局变量Vpp（需要自取）
 volatile float current_measured_vpp = 0.0f; 

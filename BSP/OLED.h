@@ -44,5 +44,13 @@ void OLED_Clear(void);
  */
 void OLED_ShowCenterString(char *str);
 
+/**
+ * @brief  在指定行和列显示字符串
+ * @param  row: 行号(1~8)，一共8行(由于是6x8字体)
+ * @param  col: 起始像素列(1~128)，默认为1则表示从最左边开始
+ * @param  str: 要显示的英文字符串
+ */
+void OLED_ShowString(uint8_t row, uint8_t col, char *str);
+
 #endif
 

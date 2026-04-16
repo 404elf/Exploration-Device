@@ -229,6 +229,31 @@ void OLED_ShowCenterString(char *str)
     }
 }
 
+/* 在指定行和列显示字符串 */
+void OLED_ShowString(uint8_t row, uint8_t col, char *str)
+{
+    // row: 行数 (1~8)
+    // col: 起始像素列 (1~128)，默认为1则从最左边开始
+    uint8_t y = (row > 0) ? (row - 1) : 0;
+    uint8_t x = (col > 0) ? (col - 1) : 0;
+    
+    if (y > 7) y = 7;
+    if (x > 127) x = 127;
+    
+    while(*str != '\0')
+    {
+        OLED_ShowChar(x, y, *str);
+        x += 6;
+        if(x > 122) // 超过屏幕右边缘则自动换到下一行最左侧
+        { 
+            x = 0;
+            y++;
+            if (y > 7) y = 0; // 如果超过最后一行则绕回第一行
+        }
+        str++;
+    }
+}
+
 /* 初始化 */
 void OLED_Init(void)
 {
