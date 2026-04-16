@@ -141,13 +141,6 @@ void task6_do(void){
 #define PEAK_RESONANCE_THRES    1.2f        // 有突起的阈值（峰值/平带增益 > 1.2）
 #define SQRT_1_2                0.7071f     // -3dB 衰减比例
 
-//滤波器参数系数
-typedef struct {
-    FilterType type;    // 类型
-    float G;            // 通带增益
-    float f0;           // 中心频率/截止频率 (Hz)
-    float Q;            // 品质因数
-} FilterModel_t;
 
 FilterModel_t identified_model;
 
@@ -180,6 +173,7 @@ void Identify_Filter_Model_HighRes(void) {
     // 恒定幅值准备
     SignalGen_Start(TEST_INPUT_VPP);   
     ADC_Measure_Start();     
+    __HAL_TIM_SET_COUNTER(&htim2,0);
     __HAL_TIM_ENABLE(&htim2);
 
     HAL_Delay(1000);

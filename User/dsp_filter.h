@@ -18,4 +18,7 @@ void Task4_do(void);    //做一次就好了
 void Task4_ADC_HalfCpltCallback(void); 
 void Task4_ADC_FullCpltCallback(void);
 
+void Task6_do(void);
+
+
 #endif

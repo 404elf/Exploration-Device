@@ -174,7 +174,7 @@ int main(void)
         break;  
         case 7:
         //·¢»Ó2
-
+        if (tab_flag)  Task6_do();
         break;
         default:
           break; 
