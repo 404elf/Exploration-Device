@@ -4,6 +4,7 @@
 #include "tim.h"
 #include "string.h"
 #include "determine_type.h"
+#include "math.h"
 ////#include "arm_math.h"   //优化IIR 函数
 ////static arm_biquad_casd_df1_inst_f32 iir_instance;
 ////static float32_t iir_state[4];  //历史状态，只有历史的，才叫历史状态

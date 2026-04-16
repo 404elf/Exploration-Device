@@ -126,8 +126,8 @@ int main(void)
   __HAL_TIM_SET_COUNTER(&htim2,0);
   //目前只用上了这一个时钟
   HAL_TIM_Base_Start(&htim2);
-  
-
+	//开始界面
+	OLED_ShowCenterString("Start");
   static uint8_t key_last_flag =0;
   static uint8_t tab_flag=0;
   /* USER CODE END 2 */
@@ -156,22 +156,24 @@ int main(void)
         case 3:
         //基础部分3
         if (tab_flag) task3_do();
-        PI_Task();
+                      PI_Task();//漏看这个了  
           break;
         case 4:
         //基础部分4
         if (tab_flag)  Task4_do();
           break;
         case 5:
-        //发挥1
-        if (tab_flag)  task5_do();
-          break;
-        case 6:
         if (tab_flag){
           OLED_Clear();
           OLED_ShowCenterString("Press to auto mode.");
         }
-        break;  
+        break;
+
+        case 6:
+        //发挥1
+        if (tab_flag)  task5_do();
+          break;
+          
         case 7:
         //发挥2
         if (tab_flag)  Task6_do();
@@ -240,6 +242,7 @@ void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef* hadc) {
           Task3_ADC_HalfCpltCallback();
           break;
           case 4:
+          //也完成了发挥2
           Task4_ADC_HalfCpltCallback();
           break;
 
@@ -268,6 +271,7 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc) {
 void HAL_DAC_ConvHalfCpltCallbackCh1(DAC_HandleTypeDef *hdac) {
     if (hdac->Instance == DAC) {
         if (key_flag == 2 || key_flag == 3) {
+          //其实命名已经不再严谨，因为还完成了发挥1，懒得改了
             Task2_3_DAC_HalfCpltCallback();
         }
     }

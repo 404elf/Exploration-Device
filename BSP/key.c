@@ -17,7 +17,8 @@ void Key_handler(uint16_t GPIO_Pin){
         //用于计数cnt++，加满判断
         is_PI();
         break;
-//!默认让pin1和pin2作为按键触发切换模式，后面再初始化
+////默认让pin1和pin2作为按键触发切换模式，后面再初始化
+//!last_press_tick被共享了，可能会出现按key1快速按key2，key2被屏蔽，不过从某种角度来说也防止了连按
       case GPIO_PIN_1:
         if (current_tick - last_press_tick > 200) {
             if (key_flag<6) key_flag+=1;
