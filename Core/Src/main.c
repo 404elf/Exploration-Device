@@ -173,7 +173,7 @@ int main(void)
         //랙뿐1
         if (tab_flag)  task5_do();
           break;
-          
+
         case 7:
         //랙뿐2
         if (tab_flag)  Task6_do();
