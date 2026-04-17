@@ -119,6 +119,7 @@ void task3_do(void) {
     HAL_ADC_Start_DMA(&hadc1, (uint32_t*)ADC_Value_Buffer, ADC_BUF_SIZE);
     
     // 如果任务3也需要输出波形，这里再夺回 DAC
+    //？什么叫也需要，就是需要啊啊笨蛋
     SignalGen_Resume();
 }
 

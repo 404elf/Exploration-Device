@@ -73,6 +73,21 @@ void SystemClock_Config(void);
 // 调试自动PID整定模式宏，0表示正常运行，1表示单独进入整定
 #define DEBUG_MODE 1  
 // ==============================================
+
+void DWT_Init(void) {
+    // 1. 开启调试跟踪组件（必开）
+    CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
+    
+    // 2. 解锁 DWT 访问（针对某些内核的规范操作）
+    // 虽然 F4 可能不需要，但加上这一行能防止在不同批次芯片上失效
+    ////DWT->LAR = 0xC5ACCE55; 
+
+    // 3. 计数器清零
+    DWT->CYCCNT = 0;
+
+    // 4. 开启计数器（必开）
+    DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
+}
 /* USER CODE END 0 */
 
 /**
@@ -115,6 +130,9 @@ int main(void)
   MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
   
+  // 初始化内置DWT周期计数器，用于高精度硬件周期测频
+  DWT_Init();
+
   //OLED初始化
   OLED_Init();
   OLED_Clear();
