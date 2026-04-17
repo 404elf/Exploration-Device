@@ -70,8 +70,15 @@ void SystemClock_Config(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 // ==============================================
-// 调试自动PID整定模式宏，0表示正常运行，1表示单独进入整定
-#define DEBUG_MODE 0  
+// 调试总开关：0表示从按键正常运转，1表示强制单卡某一任务调参
+#define DEBUG_MODE 1  
+
+// 当DEBUG_MODE打开时，固定进入的任务状态ID：
+// 2: 基础任务2 (纯DAC开环)
+// 3: 基础任务3 (PI闭环稳幅 + PID自整定控制)
+// 4: 基础任务4 (模拟计算的FIR/IIR等参数启动流)
+// (提示：发挥属于自动切转测量或无干预约走波形态，使用按键触发即可)
+#define DEBUG_TASK_ID 3
 // ==============================================
 
 void DWT_Init(void) {
@@ -161,8 +168,8 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 #if DEBUG_MODE == 1
-    // 一键覆盖状态，将机器强制固定到任务3(PI闭环任务)以运行ADC外设
-    key_flag = SYS_MODE_BASIC_3;
+    // 一键覆盖状态，将机器强制固定到指定任务以单独测试
+    key_flag = (MachineTaskMode_t)DEBUG_TASK_ID;
 
     if (key_last_flag != key_flag) {
         key_last_flag = key_flag;
@@ -171,14 +178,20 @@ int main(void)
         tab_flag = 0;
     }
 
+#if DEBUG_TASK_ID == 2
+    if (tab_flag) task2_do();
+
+#elif DEBUG_TASK_ID == 3
     if (tab_flag) task3_do();
-    
     // 运行正常的PI反馈环计算任务
     PI_Task();
-    
     // 运行自动 PID 阶梯参数扫描及OLED显示显示
     PID_AutoTune_Task();
-    
+
+#elif DEBUG_TASK_ID == 4
+    if (tab_flag) Task4_do();
+#endif
+
 #else
     if (key_last_flag!=key_flag)
     {
