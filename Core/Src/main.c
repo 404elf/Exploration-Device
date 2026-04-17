@@ -71,7 +71,7 @@ void SystemClock_Config(void);
 /* USER CODE BEGIN 0 */
 // ==============================================
 // 调试自动PID整定模式宏，0表示正常运行，1表示单独进入整定
-#define DEBUG_MODE 1  
+#define DEBUG_MODE 0  
 // ==============================================
 
 void DWT_Init(void) {
@@ -149,7 +149,7 @@ int main(void)
   HAL_TIM_Base_Start(&htim2);
 	//开始界面
 	OLED_ShowCenterString("Start");
-  static uint8_t key_last_flag =0;
+  static MachineTaskMode_t key_last_flag = SYS_MODE_INIT;
   static uint8_t tab_flag=0;
   /* USER CODE END 2 */
 
@@ -162,7 +162,7 @@ int main(void)
     /* USER CODE BEGIN 3 */
 #if DEBUG_MODE == 1
     // 一键覆盖状态，将机器强制固定到任务3(PI闭环任务)以运行ADC外设
-    key_flag = 3;
+    key_flag = SYS_MODE_BASIC_3;
 
     if (key_last_flag != key_flag) {
         key_last_flag = key_flag;
@@ -189,33 +189,33 @@ int main(void)
       tab_flag=0;
     }
       switch (key_flag){
-        case 2:
+        case SYS_MODE_BASIC_2:
         //基础部分2
         if (tab_flag) task2_do();
           break;
-        case 3:
+        case SYS_MODE_BASIC_3:
         //基础部分3
         if (tab_flag) task3_do();
                       PI_Task();//漏看这个了  
           break;
-        case 4:
+        case SYS_MODE_BASIC_4:
         //基础部分4
         if (tab_flag)  Task4_do();
           break;
         //改成冗余部分了
-        case 5:
+        case SYS_MODE_AUTO_MSG:
         if (tab_flag){
           OLED_Clear();
           OLED_ShowCenterString("Press to auto mode.");
         }
         break;
 
-        case 6:
+        case SYS_MODE_ADVANCED_1:
         //发挥1
         if (tab_flag)  task5_do();
           break;
 
-        case 7:
+        case SYS_MODE_ADVANCED_2:
         //发挥2
         if (tab_flag)  Task6_do();
         break;
@@ -280,14 +280,14 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
 void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef* hadc) {
     if (hadc->Instance == ADC1) {
        switch(key_flag){
-          case 3:
-          case 6: // 发挥1(测未知电路)底层同样需要测量Vpp与波形生成
-          Task3_ADC_HalfCpltCallback();
+          case SYS_MODE_BASIC_3:
+          case SYS_MODE_ADVANCED_1: // 发挥1(测未知电路)底层同样需要测量Vpp与波形生成
+          Measure_ADC_HalfCpltCallback();
           break;
-          case 4:
-          case 7: // 发挥2模拟未知电路，底层共用IIR乒乓调度
+          case SYS_MODE_BASIC_4:
+          case SYS_MODE_ADVANCED_2: // 发挥2模拟未知电路，底层共用IIR乒乓调度
           //也完成了发挥2
-          Task4_ADC_HalfCpltCallback();
+          IIR_Filter_ADC_HalfCpltCallback();
           break;
 
           default:
@@ -299,13 +299,13 @@ void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef* hadc) {
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc) {
     if (hadc->Instance == ADC1) {
        switch(key_flag){
-          case 3:
-          case 6: // 发挥1(测未知电路)的后续处理
-          Task3_ADC_FullCpltCallback();
+          case SYS_MODE_BASIC_3:
+          case SYS_MODE_ADVANCED_1: // 发挥1(测未知电路)的后续处理
+          Measure_ADC_FullCpltCallback();
           break;
-          case 4:
-          case 7: // 发挥2(模拟电路)底层共用IIR流
-          Task4_ADC_FullCpltCallback();
+          case SYS_MODE_BASIC_4:
+          case SYS_MODE_ADVANCED_2: // 发挥2(模拟电路)底层共用IIR流
+          IIR_Filter_ADC_FullCpltCallback();
           break;
           
           default:
@@ -316,17 +316,17 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc) {
 
 void HAL_DAC_ConvHalfCpltCallbackCh1(DAC_HandleTypeDef *hdac) {
     if (hdac->Instance == DAC) {
-        if (key_flag == 2 || key_flag == 3 || key_flag == 6) {
+        if (key_flag == SYS_MODE_BASIC_2 || key_flag == SYS_MODE_BASIC_3 || key_flag == SYS_MODE_ADVANCED_1) {
           //其实命名已经不再严谨，因为还完成了发挥1(状态6)，懒得改了
-            Task2_3_DAC_HalfCpltCallback();
+            SignalGen_DAC_HalfCpltCallback();
         }
     }
 }
 
 void HAL_DAC_ConvCpltCallbackCh1(DAC_HandleTypeDef *hdac) {
     if (hdac->Instance == DAC) {
-        if (key_flag == 2 || key_flag == 3 || key_flag == 6) {
-            Task2_3_DAC_FullCpltCallback();
+        if (key_flag == SYS_MODE_BASIC_2 || key_flag == SYS_MODE_BASIC_3 || key_flag == SYS_MODE_ADVANCED_1) {
+            SignalGen_DAC_FullCpltCallback();
         }
     }
 }

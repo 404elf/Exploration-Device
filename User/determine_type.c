@@ -5,10 +5,13 @@
 #include "tim.h"
 #include "dac.h"
 #include "adc.h"
+#include "key.h"
 
 
 
 #define TEST_INPUT_VPP 1.0f  // 指定测试输入信号的Vpp基准幅值
+
+extern volatile MachineTaskMode_t key_flag;
 
 #if (ISLUCK == 0)
 FilterType Result =FILTER_UNKNOWN;
@@ -329,8 +332,7 @@ void task5_do(void){
     // 扫频和模型建立完毕后，给使用者展示3秒钟型号，
     // 然后系统自动切入 发挥部分2 (也就是 main里面的 case 7), 直接启动双踪仿真！
     HAL_Delay(5000);
-    extern volatile uint8_t key_flag;
-    key_flag = 7;
+    key_flag = SYS_MODE_ADVANCED_2;
 };
 
 #endif

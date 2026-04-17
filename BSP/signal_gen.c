@@ -184,14 +184,14 @@ void task2_do(void){
 
 // 单表上下切换实现流式输出
 // 当前半个缓冲被 DAC 发送出去时，触发回调
-void Task2_3_DAC_HalfCpltCallback(void) {
+void SignalGen_DAC_HalfCpltCallback(void) {
     // DMA 正在发后半段，CPU 赶紧算出接下来的连续 DDS 点填入前半段
     // DAC是会自己输出的，所以这里是改变表的内容
     DDS_Generate_Block(&DAC_Buffer[0], DAC_BUF_SIZE / 2);
 }
 
 // 当后半个缓冲也被 DAC 发送出去时，触发回调
-void Task2_3_DAC_FullCpltCallback(void) {
+void SignalGen_DAC_FullCpltCallback(void) {
     // DMA 扭头去发前半段，CPU 赶紧算出接下来的连续 DDS 点填入后半段
     DDS_Generate_Block(&DAC_Buffer[DAC_BUF_SIZE / 2], DAC_BUF_SIZE / 2);
 }

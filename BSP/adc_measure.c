@@ -99,14 +99,14 @@ void update_freq(void){
 /**
  * @brief 乒乓缓存前半段完成中断(半满)：DMA仍在继续往后半段装入数据，此刻CPU趁机处理刚装好的前半段(0 ~ 99)
  */
-void Task3_ADC_HalfCpltCallback(void) {
+void Measure_ADC_HalfCpltCallback(void) {
      ADC_Cal_Vpp(&ADC_Value_Buffer[0], ADC_BUF_SIZE / 2);
 }
 
 /**
  * @brief 乒乓缓存全满完成中断：DMA发生回放绕并开始重写前半段数据，此刻CPU趁机处理刚装好的后半段(100 ~ 199)
  */
-void Task3_ADC_FullCpltCallback(void) {
+void Measure_ADC_FullCpltCallback(void) {
     ADC_Cal_Vpp(&ADC_Value_Buffer[ADC_BUF_SIZE / 2], ADC_BUF_SIZE / 2);
 }
 

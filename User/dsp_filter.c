@@ -200,11 +200,11 @@ void Task4_Filter_Stop(void) {
 /**
  * @brief ADC完成前半段，DAC往前半段填，和先前一样，没什么好说的
  */
-void Task4_ADC_HalfCpltCallback(void) {
+void IIR_Filter_ADC_HalfCpltCallback(void) {
     Process_IIR_Block(&ADC_Buffer[0], &DAC_Buffer[0], FILTER_BUF_SIZE / 2);
 }
 
-void Task4_ADC_FullCpltCallback(void) {
+void IIR_Filter_ADC_FullCpltCallback(void) {
     Process_IIR_Block(&ADC_Buffer[FILTER_BUF_SIZE / 2], &DAC_Buffer[FILTER_BUF_SIZE / 2], FILTER_BUF_SIZE / 2);
 }
 

@@ -2,7 +2,7 @@
 #include "gpio.h"
 #include "adc_measure.h" // 引入 is_PI 的声明
 
-volatile uint8_t key_flag = 2;
+volatile MachineTaskMode_t key_flag = SYS_MODE_BASIC_2;
 
 volatile uint32_t last_press_tick = 0; // 上次有效按键的时间戳
 volatile uint8_t  button_event = 0;    // 按键事件标志位
@@ -22,8 +22,8 @@ void Key_handler(uint16_t GPIO_Pin){
       case GPIO_PIN_1:
         if (current_tick - last_press_tick > 200) {
             // 仅在基础模式 2~4 循环
-            if (key_flag < 4) key_flag += 1;
-            else key_flag = 2;
+            if (key_flag < SYS_MODE_BASIC_4) key_flag = (MachineTaskMode_t)(key_flag + 1);
+            else key_flag = SYS_MODE_BASIC_2;
             last_press_tick = current_tick;
             }
         break;
@@ -31,15 +31,15 @@ void Key_handler(uint16_t GPIO_Pin){
       case GPIO_PIN_2:
         if (current_tick - last_press_tick > 200) {
             // 仅在基础模式 2~4 循环
-            if (key_flag > 2) key_flag -= 1;
-            else key_flag = 4;
+            if (key_flag > SYS_MODE_BASIC_2) key_flag = (MachineTaskMode_t)(key_flag - 1);
+            else key_flag = SYS_MODE_BASIC_4;
             last_press_tick = current_tick;
             }
         break;
 
       case GPIO_PIN_3: // 独立的一键自动学习建（Auto键）
         if (current_tick - last_press_tick > 200) {
-            key_flag = 6; // 强行切入一键自动学习状态 (发挥1)
+            key_flag = SYS_MODE_ADVANCED_1; // 强行切入一键自动学习状态 (发挥1)
             last_press_tick = current_tick;
         }
         break;

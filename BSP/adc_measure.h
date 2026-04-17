@@ -13,7 +13,7 @@ float Get_Vpp(void);
 float Get_freq(void);
 
 void task3_do(void);
-void Task3_ADC_HalfCpltCallback(void);
-void Task3_ADC_FullCpltCallback(void);
+void Measure_ADC_HalfCpltCallback(void);
+void Measure_ADC_FullCpltCallback(void);
 
 #endif

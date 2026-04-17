@@ -15,8 +15,8 @@ void Task4_Filter_Stop(void);  // 停止IIR滤波器
 void Task4_do(void);    //做一次就好了
 
 // DMA中断处理回调接口
-void Task4_ADC_HalfCpltCallback(void); 
-void Task4_ADC_FullCpltCallback(void);
+void IIR_Filter_ADC_HalfCpltCallback(void); 
+void IIR_Filter_ADC_FullCpltCallback(void);
 
 void Task6_do(void);
 

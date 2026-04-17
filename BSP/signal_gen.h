@@ -16,7 +16,7 @@ void SignalGEN_Restart(void);               // 重启波形输出（相位对齐用）
 void SignalGen_Resume(void);                // 抢回DAC流控制并重开
 void SignalGen_UpdateVpp(float new_vpp);	// 在运行过程中修改Vpp
 void task2_do(void);
-void Task2_3_DAC_HalfCpltCallback(void);
-void Task2_3_DAC_FullCpltCallback(void);
+void SignalGen_DAC_HalfCpltCallback(void);
+void SignalGen_DAC_FullCpltCallback(void);
 
 #endif
