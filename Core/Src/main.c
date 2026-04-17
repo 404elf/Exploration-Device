@@ -71,7 +71,7 @@ void SystemClock_Config(void);
 /* USER CODE BEGIN 0 */
 // ==============================================
 // 调试总开关：0表示从按键正常运转，1表示强制单卡某一任务调参
-#define DEBUG_MODE 1  
+#define DEBUG_MODE 0  
 
 // 当DEBUG_MODE打开时，固定进入的任务状态ID：
 // 2: 基础任务2 (纯DAC开环)
@@ -87,7 +87,7 @@ void DWT_Init(void) {
     
     // 2. 解锁 DWT 访问（针对某些内核的规范操作）
     // 虽然 F4 可能不需要，但加上这一行能防止在不同批次芯片上失效
-    ////DWT->LAR = 0xC5ACCE55; 
+    //DWT->LAR = 0xC5ACCE55; 
 
     // 3. 计数器清零
     DWT->CYCCNT = 0;
@@ -143,6 +143,7 @@ int main(void)
   //OLED初始化
   OLED_Init();
   OLED_Clear();
+  Init_SineRef(); // 必须初始化波形表，否则全是直流 0！
   // PI控制
   Control_Init();
   //计算IIR滤波系数，提前算好
