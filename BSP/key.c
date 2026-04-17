@@ -21,7 +21,8 @@ void Key_handler(uint16_t GPIO_Pin){
 //!last_press_tick被共享了，可能会出现按key1快速按key2，key2被屏蔽，不过从某种角度来说也防止了连按
       case GPIO_PIN_1:
         if (current_tick - last_press_tick > 200) {
-            if (key_flag<6) key_flag+=1;
+            // 仅在基础模式 2~4 循环
+            if (key_flag < 4) key_flag += 1;
             else key_flag = 2;
             last_press_tick = current_tick;
             }
@@ -29,10 +30,18 @@ void Key_handler(uint16_t GPIO_Pin){
 
       case GPIO_PIN_2:
         if (current_tick - last_press_tick > 200) {
-            if (key_flag>2) key_flag-=1;
-            else key_flag = 6;
+            // 仅在基础模式 2~4 循环
+            if (key_flag > 2) key_flag -= 1;
+            else key_flag = 4;
             last_press_tick = current_tick;
             }
+        break;
+
+      case GPIO_PIN_3: // 独立的一键自动学习建（Auto键）
+        if (current_tick - last_press_tick > 200) {
+            key_flag = 6; // 强行切入一键自动学习状态 (发挥1)
+            last_press_tick = current_tick;
+        }
         break;
 
       default:

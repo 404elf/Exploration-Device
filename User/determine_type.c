@@ -294,10 +294,12 @@ void Identify_Filter_Model_HighRes(void) {
 
 void task5_do(void){
     OLED_Clear();
+    OLED_ShowCenterString("YES IT IS AUTO");
+    HAL_Delay(3000);
     OLED_ShowCenterString("Please wait……");
     Identify_Filter_Model_HighRes();
     OLED_ShowCenterString("Finish");
-    HAL_Delay(3000);
+    HAL_Delay(5000);
     OLED_ShowCenterString("the answer is……");
     HAL_Delay(3000);
     switch (identified_model.type){
@@ -322,8 +324,13 @@ void task5_do(void){
         default:        
         break;
     }
+    
+    // ======== "一键启动...后续不可人工干预" ========
+    // 扫频和模型建立完毕后，给使用者展示3秒钟型号，
+    // 然后系统自动切入 发挥部分2 (也就是 main里面的 case 7), 直接启动双踪仿真！
+    HAL_Delay(5000);
+    extern volatile uint8_t key_flag;
+    key_flag = 7;
 };
-
-
 
 #endif

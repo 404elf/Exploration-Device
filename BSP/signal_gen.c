@@ -2,6 +2,7 @@
 #include "math.h"
 #include "dac.h"
 #include "tim.h"
+#include "OLED.h"
 //定周DDS   点准频率变  点就是波形精细度
 //用指针来切表
 //定频DDS   点变频率准
@@ -166,6 +167,8 @@ void Set_DDS_Freq(float freq) {
 
 
 void task2_do(void){
+    OLED_Clear();
+    OLED_ShowCenterString("basictask2");
     HAL_DAC_Stop_DMA(&hdac, DAC_CHANNEL_1);
 
     //通过Hs计算目标Vout的Vpp

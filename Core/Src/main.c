@@ -162,6 +162,7 @@ int main(void)
         //基础部分4
         if (tab_flag)  Task4_do();
           break;
+        //改成冗余部分了
         case 5:
         if (tab_flag){
           OLED_Clear();
@@ -239,9 +240,11 @@ void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef* hadc) {
     if (hadc->Instance == ADC1) {
        switch(key_flag){
           case 3:
+          case 6: // 发挥1(测未知电路)底层同样需要测量Vpp与波形生成
           Task3_ADC_HalfCpltCallback();
           break;
           case 4:
+          case 7: // 发挥2模拟未知电路，底层共用IIR乒乓调度
           //也完成了发挥2
           Task4_ADC_HalfCpltCallback();
           break;
@@ -256,9 +259,11 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc) {
     if (hadc->Instance == ADC1) {
        switch(key_flag){
           case 3:
+          case 6: // 发挥1(测未知电路)的后续处理
           Task3_ADC_FullCpltCallback();
           break;
           case 4:
+          case 7: // 发挥2(模拟电路)底层共用IIR流
           Task4_ADC_FullCpltCallback();
           break;
           
@@ -270,8 +275,8 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc) {
 
 void HAL_DAC_ConvHalfCpltCallbackCh1(DAC_HandleTypeDef *hdac) {
     if (hdac->Instance == DAC) {
-        if (key_flag == 2 || key_flag == 3) {
-          //其实命名已经不再严谨，因为还完成了发挥1，懒得改了
+        if (key_flag == 2 || key_flag == 3 || key_flag == 6) {
+          //其实命名已经不再严谨，因为还完成了发挥1(状态6)，懒得改了
             Task2_3_DAC_HalfCpltCallback();
         }
     }
@@ -279,7 +284,7 @@ void HAL_DAC_ConvHalfCpltCallbackCh1(DAC_HandleTypeDef *hdac) {
 
 void HAL_DAC_ConvCpltCallbackCh1(DAC_HandleTypeDef *hdac) {
     if (hdac->Instance == DAC) {
-        if (key_flag == 2 || key_flag == 3) {
+        if (key_flag == 2 || key_flag == 3 || key_flag == 6) {
             Task2_3_DAC_FullCpltCallback();
         }
     }

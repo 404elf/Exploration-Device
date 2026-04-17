@@ -5,6 +5,7 @@
 #include "string.h"
 #include "determine_type.h"
 #include "math.h"
+#include "OLED.h"
 ////#include "arm_math.h"   //优化IIR 函数
 ////static arm_biquad_casd_df1_inst_f32 iir_instance;
 ////static float32_t iir_state[4];  //历史状态，只有历史的，才叫历史状态
@@ -209,6 +210,8 @@ void Task4_ADC_FullCpltCallback(void) {
 
 
 void Task4_do(void){
+    OLED_Clear();
+    OLED_ShowCenterString("basictask4");
     // 1. 根据题目要求，任务4是模拟“已知模型电路”
     // 使用宏定义的已知参数逆推出系统的谐振频率和Q值等，覆盖写入 identified_model
     identified_model.type = FILTER_LOW_PASS;
@@ -231,7 +234,7 @@ void Task4_do(void){
 
 void Task6_do(void){
     Calculate_IIR_Coeffs();
-    
+
     Task4_Filter_Init();
     Task4_Filter_Start();
 }

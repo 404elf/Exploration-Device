@@ -58,11 +58,18 @@ void PI_Task(void){
         if (current_time - last_time >= 100){
             // 获取Vin的Vpp
             float current_vpp=Get_Vpp();
-            // 求得目标vout
+            //我们预期让Vout改变的数值，但是很可惜，还需要通过未知模型，所以我们打算用cal逆向，天才的设计！
+            //所以我把计算写死在单片机里绝对不是为了偷懒！！！
             PI_compute(current_vpp);
+
+            float target_freq = Get_freq(); 
+            float true_vin = Cal_Vin(vpp_ctrl.Output, target_freq);
+
             // 修正真实电压
-            SignalGen_UpdateVpp(vpp_ctrl.Output);
+            SignalGen_UpdateVpp(true_vin);
             //确保同频
             update_freq();
+            //更新时间差 ！ 我怎么忘记了？？？？
+            last_time = current_time;
         }
 }
