@@ -69,7 +69,10 @@ void SystemClock_Config(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-
+// ==============================================
+// 调试自动PID整定模式宏，0表示正常运行，1表示单独进入整定
+#define DEBUG_MODE 1  
+// ==============================================
 /* USER CODE END 0 */
 
 /**
@@ -139,7 +142,26 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+#if DEBUG_MODE == 1
+    // 一键覆盖状态，将机器强制固定到任务3(PI闭环任务)以运行ADC外设
+    key_flag = 3;
+
+    if (key_last_flag != key_flag) {
+        key_last_flag = key_flag;
+        tab_flag = 1;
+    } else {
+        tab_flag = 0;
+    }
+
+    if (tab_flag) task3_do();
     
+    // 运行正常的PI反馈环计算任务
+    PI_Task();
+    
+    // 运行自动 PID 阶梯参数扫描及OLED显示显示
+    PID_AutoTune_Task();
+    
+#else
     if (key_last_flag!=key_flag)
     {
       key_last_flag=key_flag;
@@ -182,6 +204,7 @@ int main(void)
         default:
           break; 
       }
+#endif
   }
   /* USER CODE END 3 */
 }

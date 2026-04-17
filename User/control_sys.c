@@ -3,6 +3,8 @@
 #include "signal_gen.h"
 #include "tim.h"
 #include "math.h"
+#include "OLED.h"
+#include <stdio.h>
 
 static PI_Controller vpp_ctrl;
 ////static volatile uint8_t ctrl_timer=0;
@@ -72,4 +74,70 @@ void PI_Task(void){
             //更新时间差 ！ 我怎么忘记了？？？？
             last_time = current_time;
         }
+}
+
+// ================= PID 调参配置宏 =================
+// 调参模式宏定：0代表正在扫P，1代表使用最佳P去扫I
+#define TUNE_MODE 0
+
+// 当 TUNE_MODE 为 1 时，被固定的“最佳已知P值”
+#define BEST_KP 0.15f 
+// ================================================
+
+/**
+ * @brief PID 步长自动自整定调试函数 (DEBUG_MODE == 1 时调用)
+ * 本函数通过宏定义的模式进行单体调试，消除等待焦虑。
+ * 调P时，I=0；调I时，使用上方填写的BEST_KP。
+ */
+void PID_AutoTune_Task(void) {
+    static uint32_t last_tune_time = 0;
+    static float tune_Kp = 0.0f;
+    static float tune_Ki = 0.0f;
+    
+    char show_buf[32];
+    uint32_t current_time = HAL_GetTick();
+
+    if (last_tune_time == 0) last_tune_time = current_time;
+    //非阻塞定时，也是老朋友了
+    
+    //每次调节停留的时间
+    if (current_time - last_tune_time >= 5000) {
+#if TUNE_MODE == 0
+        // Phase 0: 纯扫 P (I强制为0)
+        tune_Ki = 0.0f;
+        tune_Kp += 0.05f;  // P 的快速步进
+        
+        if (tune_Kp > 0.50f) {
+            tune_Kp = 0.0f; // 扫到太发散直接归零重头来
+        }
+#else
+        // Phase 1: 固定最佳 P, 纯扫 I (积分常数P:I差距极大，按100:1估算步长设置极小)
+        tune_Kp = BEST_KP;
+        tune_Ki += 0.01f; // I 的保守微调步长
+        
+        if (tune_Ki > 0.20f) {
+            tune_Ki = 0.0f; // I 扫满也重跑
+        }
+#endif
+        
+        // 赋予实际闭环控制结构体中
+        vpp_ctrl.Kp = tune_Kp;
+        vpp_ctrl.Ki = tune_Ki;
+        
+        last_tune_time = current_time;
+    }
+
+    // 将内容打到 OLED 上同步供人视察（使用第1-3行以防文字乱码重叠）
+    sprintf(show_buf, "DEBUG: PID Tune");
+    OLED_ShowString(1, 1, show_buf);
+    
+#if TUNE_MODE == 0
+    sprintf(show_buf, "[1. Sweeping Kp]");
+#else
+    sprintf(show_buf, "[2. Sweeping Ki]");
+#endif
+    OLED_ShowString(2, 1, show_buf);
+
+    sprintf(show_buf, "Kp:%.2f Ki:%.3f", vpp_ctrl.Kp, vpp_ctrl.Ki);
+    OLED_ShowString(4, 1, show_buf);
 }

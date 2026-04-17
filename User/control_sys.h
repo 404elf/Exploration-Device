@@ -16,5 +16,6 @@ typedef struct{
 void Control_Init(void);
 void PI_Task(void);
 void PI_compute(float vpp);
+void PID_AutoTune_Task(void);
 
 #endif
