@@ -4,9 +4,17 @@
 #include "tim.h"
 #include "string.h"
 #include "OLED.h"
+/**
+ * 文件介绍：
+ * 
+ */
 
-#define ADC_BUF_SIZE 4096 //为了Vpp测量更准确，可以适当开大
+
+#define ADC_BUF_SIZE 64  
+#define DWT_CYCCNT_CLK_HZ ((float)HAL_RCC_GetHCLKFreq()) //DWT的频率，与HCLK同频
+
 uint16_t ADC_Value_Buffer[ADC_BUF_SIZE];    // ADC采样值缓冲区
+//*markdown：可见这种计算不返回，用全局变量引出是一种很方便的方法
 //全局变量Vpp（需要自取）
 volatile float current_measured_vpp = 0.0f; 
 //最新频率(需要自取)
@@ -33,15 +41,30 @@ void ADC_Measure_Start(void){
  * @param length 需要处理的数据大小
  */
 void ADC_Cal_Vpp(uint16_t* pBuffer, uint16_t length){
-    uint16_t max=0,min=4095;
-
+    // 使用静态变量，跨越多次中断累积计算最大最小值
+    static uint16_t global_max = 0;
+    static uint16_t global_min = 4095;
+    static uint8_t  calc_count = 0;
+    
+    // 找出当前这一小段（32个点）的极值
     for (int i = 0; i < length; i++){
-        if(pBuffer[i] > max) max = pBuffer[i];
-        if(pBuffer[i] < min) min = pBuffer[i];
+        if(pBuffer[i] > global_max) global_max = pBuffer[i];
+        if(pBuffer[i] < global_min) global_min = pBuffer[i];
     }
-    // 计算得到的Vpp为MCU端ADC探测到的实际电压峰峰值
-    float vpp = (max - min) * 3.3f / 4095.0f;
-    current_measured_vpp = vpp;
+    
+    calc_count++;
+    
+    // 累积 50 次中断（即 50 个半块的数据，相当于时间跨度扩展了 50 倍）由于缓存小，中断会很快
+    if(calc_count >= 50) {
+        // 计算最终的 Vpp
+        float final_vpp = (global_max - global_min) * 3.3f / 4095.0f;
+        current_measured_vpp = final_vpp;
+        
+        // 重置状态，准备下一个周期的测量
+        global_max = 0;
+        global_min = 4095;
+        calc_count = 0;
+    }
 }
 
 /**
@@ -66,7 +89,8 @@ void is_PI(void){
 
         if (last_time != 0) { 
             uint32_t period_cycles = now_time - last_time;
-            current_measured_freq = (168000000.0f / (float)period_cycles) * 500.0f;
+            // DWT 运行在 HCLK，因此这里要使用 HCLK 作为周期换算基准
+            current_measured_freq = (DWT_CYCCNT_CLK_HZ / (float)period_cycles) * 500.0f;
         }
         last_time = now_time;
         ////compute_flag = 1; // 触发PID更新标志
@@ -122,20 +146,3 @@ void task3_do(void) {
     //？什么叫也需要，就是需要啊啊笨蛋
     SignalGen_Resume();
 }
-
-//因为ADC走两套逻辑，所以中断就搬迁了
-//与隔壁signal_gen.c的逻辑相同
-/*
-void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef* hadc) {
-    if (hadc->Instance == ADC1) {
-       
-    }
-}
-
-void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc) {
-    if (hadc->Instance == ADC1) {
-        
-    }
-}
-*/
-
