@@ -10,10 +10,11 @@
  */
 
 
-#define ADC_BUF_SIZE 64  
+#define ADC_BUF_SIZE 256  
 #define DWT_CYCCNT_CLK_HZ ((float)HAL_RCC_GetHCLKFreq()) //DWT的频率，与HCLK同频
 
 uint16_t ADC_Value_Buffer[ADC_BUF_SIZE];    // ADC采样值缓冲区
+
 //*markdown：可见这种计算不返回，用全局变量引出是一种很方便的方法
 //全局变量Vpp（需要自取）
 volatile float current_measured_vpp = 0.0f; 
@@ -28,7 +29,7 @@ volatile uint32_t now_time = 0;
 volatile uint32_t last_time = 0;
 
 /**
- * @brief 启动ADC测量及其对应的定时器
+ * @brief 启动ADC
  */
 void ADC_Measure_Start(void){
     HAL_ADC_Start_DMA(&hadc1,(uint32_t*)ADC_Value_Buffer,ADC_BUF_SIZE);
@@ -36,31 +37,35 @@ void ADC_Measure_Start(void){
 }
 
 /**
- * @brief 计算输入数据的Vpp
- * @param pBuffer 指针  指向前/半部分缓冲区
+ * @brief 从测量数据中找到Vpp
+ * @param pBuffer 指向测量数据
  * @param length 需要处理的数据大小
  */
 void ADC_Cal_Vpp(uint16_t* pBuffer, uint16_t length){
-    // 使用静态变量，跨越多次中断累积计算最大最小值
+    // 静态变量，重复运行，到点清零，需要记忆
     static uint16_t global_max = 0;
     static uint16_t global_min = 4095;
     static uint8_t  calc_count = 0;
     
-    // 找出当前这一小段（32个点）的极值
+    //半中断中找极值
     for (int i = 0; i < length; i++){
-        if(pBuffer[i] > global_max) global_max = pBuffer[i];
-        if(pBuffer[i] < global_min) global_min = pBuffer[i];
+    //*mark：能用本地变量，就别用外设寄存器，也别用内存
+    uint16_t pBuffer_Reg=pBuffer[i];
+    if(pBuffer_Reg > global_max) global_max = pBuffer_Reg;
+    if(pBuffer_Reg < global_min) global_min = pBuffer_Reg;
     }
     
     calc_count++;
     
-    // 累积 50 次中断（即 50 个半块的数据，相当于时间跨度扩展了 50 倍）由于缓存小，中断会很快
+    //累计50次总结一下，涵盖更大时间范围
+    //!虽然处理数据是O（N），但是中断调用有着固定开销，会使得时间占比越大
+    //*MK 占用不会消失，只是另一个方向转移……
     if(calc_count >= 50) {
         // 计算最终的 Vpp
         float final_vpp = (global_max - global_min) * 3.3f / 4095.0f;
         current_measured_vpp = final_vpp;
         
-        // 重置状态，准备下一个周期的测量
+        //准备重新测量
         global_max = 0;
         global_min = 4095;
         calc_count = 0;

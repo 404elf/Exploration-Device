@@ -63,8 +63,9 @@ FilterType Identify_Filter_Type(void) {
     int min_idx = 0;
     for (int i = 1; i < 5; i++) {
         //找最大最小
-        if (gain_results[i] > gain_results[max_idx]) max_idx = i;
-        if (gain_results[i] < gain_results[min_idx]) min_idx = i;
+        float gain_results_Reg = gain_results[i];
+        if (gain_results_Reg > gain_results[max_idx]) max_idx = i;
+        if (gain_results_Reg < gain_results[min_idx]) min_idx = i;
     }
 
     // 1. 全通滤波器判断：整个频段内增益变化极其微弱 (起伏差小于最大增益值的 15%)
@@ -188,14 +189,15 @@ void Identify_Filter_Model_HighRes(void) {
         HAL_Delay(50); //t stable
         
         float vpp = Get_Vpp();
-        gain_curve[i] = vpp / TEST_INPUT_VPP;
+        float gain_curve_Reg = vpp / TEST_INPUT_VPP;
+        gain_curve[i] = gain_curve_Reg;
         
-        if (gain_curve[i] > max_gain) {
-            max_gain = gain_curve[i];
+        if (gain_curve_Reg > max_gain) {
+            max_gain = gain_curve_Reg;
             max_idx = i;
         }
-        if (gain_curve[i] < min_gain) {
-            min_gain = gain_curve[i];
+        if (gain_curve_Reg < min_gain) {
+            min_gain = gain_curve_Reg;
             min_idx = i;
         }
     }
