@@ -20,5 +20,5 @@ typedef enum {
 extern volatile MachineTaskMode_t key_flag;
 
 void Key_handler(uint16_t GPIO_Pin);
-
+float Get_freq(void);
 #endif

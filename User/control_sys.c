@@ -5,6 +5,7 @@
 #include "math.h"
 #include "OLED.h"
 #include <stdio.h>
+#include "key.h"
 
 static PI_Controller vpp_ctrl;
 ////static volatile uint8_t ctrl_timer=0;

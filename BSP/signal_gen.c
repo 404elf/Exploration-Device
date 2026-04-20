@@ -4,6 +4,7 @@
 #include "tim.h"
 #include "OLED.h"
 #include "adc.h"
+#include "key.h"
 //定周DDS   点准频率变  点就是波形精细度
 //用指针来切表
 //定频DDS   点变频率准
@@ -166,6 +167,17 @@ void Set_DDS_Freq(float freq) {
     dds_phase_step = (freq / 1000000.0f) * REF_POINTS;  
 }
 
+/**
+ * @brief 更新频率（被动）
+ */
+//!等等，是不是出现过两个更新来着？
+//哦哦 我知道了，只有一处需要用到被动更新，所以没问题了
+void update_freq(void){
+    float freq_Reg=Get_freq();
+    if (freq_Reg >= 800.0f && freq_Reg <= 55000.0f) {
+        Set_DDS_Freq(freq_Reg);
+    }
+}
 
 void task2_do(void){
     OLED_Clear();

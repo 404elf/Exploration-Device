@@ -19,4 +19,6 @@ void task2_do(void);
 void SignalGen_DAC_HalfCpltCallback(void);
 void SignalGen_DAC_FullCpltCallback(void);
 
+void update_freq(void);
+
 #endif
