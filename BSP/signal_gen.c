@@ -10,11 +10,10 @@
 //定频DDS   点变频率准
 //一个表分上下部分流式输出
 
-
 // 定时器tim2触发DAC(PA4)输出波形
 
 // 内部变量 - 存储在内存中的双缓冲波形表
-////static uint16_t SineTable[SINE_SAMPLES];
+
 static uint16_t DAC_Buffer[DAC_BUF_SIZE]; // 唯一的一段环形 DMA 缓冲
 
 #define REF_POINTS 1024
@@ -24,6 +23,16 @@ static float dds_phase_step = 0.0f; // 步长决定频率
 
 //修改此即可修改vpp
 static volatile float current_vpp_target = 0.0f;
+
+
+/**
+ * @brief 有着1024个点 的 基准sin表（值域为0，1）
+ * REF_POINTS决定表有几个点
+ */
+void Init_SineRef(void) {
+    for(int i=0; i<REF_POINTS; i++) 
+        SineRef[i] = (sinf(2.0f * PI * i / REF_POINTS) + 1.0f) / 2.0f;
+}
 
 
 //该函数的Vin和Vout是对于已知模型电路来说的
@@ -58,14 +67,6 @@ float Cal_Vin(float Vout,float freq){
     return Vin;
 }
 
-/**
- * @brief 有着1024个点 的 基准sin表（值域为0，1）RE
- * REF_POINTS决定表有几个点
- */
-void Init_SineRef(void) {
-    for(int i=0; i<REF_POINTS; i++) 
-        SineRef[i] = (sinf(2.0f * PI * i / REF_POINTS) + 1.0f) / 2.0f;
-}
 
 /**
  * @brief DDS流式数据块填充（填表，但是每次只填一半（看后面调用））
@@ -76,15 +77,17 @@ static void DDS_Generate_Block(uint16_t* pBuffer, uint16_t length) {
     float amp = (current_vpp_target / 3.3f) * 4095.0f;
     float offset = 2048.0f - (amp / 2.0f);
     //上下皆做判断，可以确保从其它函数进来改变的情况不出错
+    //读内存
+    float dds_phase_Reg=dds_phase;
     for (int i = 0; i < length; i++) {
         // 防御性处理，防止内存越界
-        if (dds_phase >= (float)REF_POINTS) dds_phase -= (float)REF_POINTS;
-        if (dds_phase < 0) dds_phase = 0; 
+        if (dds_phase_Reg >= (float)REF_POINTS) dds_phase_Reg -= (float)REF_POINTS;
+        if (dds_phase_Reg < 0) dds_phase_Reg = 0; 
 
         //线性插值法
-        int index0 = (int)dds_phase;
+        int index0 = (int)dds_phase_Reg;
         int index1 = index0 + 1;
-        float frac = dds_phase - (float)index0;
+        float frac = dds_phase_Reg - (float)index0;
         
         if (index1 >= REF_POINTS) index1 = 0;
 
@@ -101,29 +104,30 @@ static void DDS_Generate_Block(uint16_t* pBuffer, uint16_t length) {
         pBuffer[i] = (uint16_t)val;
         
         // 关键点：相位在此持续累加，绝对不会断层
-        dds_phase += dds_phase_step;
-        if (dds_phase >= (float)REF_POINTS) dds_phase -= (float)REF_POINTS;
-
+        dds_phase_Reg += dds_phase_step;
+        if (dds_phase_Reg >= (float)REF_POINTS) dds_phase_Reg -= (float)REF_POINTS;
     }
+    //写内存
+    dds_phase=dds_phase_Reg;
 }
 
 /**
- * @brief 系统启动波形输出
+ * @brief 系统启动波形输出(默认直流)
  */
 void SignalGen_Start(float init_vpp) {
-    // 因为你在全局时钟规划中已经去掉了这里的 TIM2 停用，我们不用停 TIM2
-    // 但我们可以停用 DAC_DMA，防止旧数据冲突
     HAL_DAC_Stop_DMA(&hdac, DAC_CHANNEL_1);
     
-    current_vpp_target = init_vpp;
+    current_vpp_target = init_vpp;  //开始
+    Set_DDS_Freq(0);
     dds_phase = 0.0f; // 重置初始相位
 
-    //!初始vpp为0，所以开启输出也为0，流式填表填的也都是0
     // 预先填满整个 DMA 缓冲区
     DDS_Generate_Block(DAC_Buffer, DAC_BUF_SIZE);
 
+    __HAL_TIM_SET_COUNTER(&htim2,0);
     //先填充，后开DMA，避免毛刺
     HAL_DAC_Start_DMA(&hdac, DAC_CHANNEL_1, (uint32_t*)DAC_Buffer, DAC_BUF_SIZE, DAC_ALIGN_12B_R);
+    __HAL_TIM_SET_COUNTER(&htim2,0);
 }
 
 /**

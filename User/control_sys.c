@@ -27,31 +27,31 @@ void Control_Init(void){
 
 
 /**
- * @brief 具体地执行针对输入实际反馈电压的单周期PI闭环公式控制计算
- * @param vpp 当前采样得到的反馈系统的实时实际Vpp
+ * @brief 决定应该输出的Vpp
+ * @param vpp 采样所得输入Vpp
  */
 void PI_compute(float vpp){
-        // 经典位置式数字PI算法：首先计算当前控制误差(Error)
+        // 位置式PI
         float error = vpp_ctrl.Target - vpp;
 
-        // 设置死区：如果误差绝对值足够小（认为受控基本达标），则暂停积分累积以免引起震荡
+        // 死区设置，过于小，则忽略，防震荡
         if (fabs(error)>0.01f){
             vpp_ctrl.Integral +=error;
         }
-        // 加入积分限幅保护(即抗积分系统长周期工作饱和失控策略)，上限及下限±10.0f
+        // 限幅操作，防止无限累加
         if(vpp_ctrl.Integral > 10.0f) vpp_ctrl.Integral = 10.0f;
         if(vpp_ctrl.Integral < -10.0f) vpp_ctrl.Integral = -10.0f;
 
-        // 根据标准积分位置算法计算实际控制增量输出：预期新输出 = 比例主控K*误差项 + 稳态控制K*累计积分项
+        //PI公式
         vpp_ctrl.Output=(vpp_ctrl.Kp*error)+(vpp_ctrl.Ki*vpp_ctrl.Integral);
 
-        // 对实际所作用到信号系统的输出参数值上限下限做截断与硬限制约束以防物理设备损坏
+        // 限幅操作
         if (vpp_ctrl.Output>3.0f)vpp_ctrl.Output=3.0f;
         if (vpp_ctrl.Output<0.0f)vpp_ctrl.Output=0.0f;
 }
 
 /**
- * @brief 周期触发条件下处理的PI系统闭环调节核心总任务
+ * @brief 执行PI调节任务
  */
 void PI_Task(void){
         static uint32_t last_time = 0;        // 记录上次运行time用于求间隔

@@ -5,7 +5,7 @@
 
 // 定义系统运行模式枚举
 typedef enum {
-    SYS_MODE_INIT        = 0, // 初始上电状态或复位状态
+    SYS_MODE_INIT        = 1, // 初始上电状态或复位状态
     // -- 基础部分 --
     SYS_MODE_BASIC_2     = 2, // 基础任务2: DAC开环输出
     SYS_MODE_BASIC_3     = 3, // 基础任务3: PI闭环稳幅输出

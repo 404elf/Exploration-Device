@@ -81,14 +81,13 @@ void SystemClock_Config(void);
 #define DEBUG_TASK_ID 3
 // ==============================================
 
+/**
+ * @brief 用于开启时钟计数
+ */
 void DWT_Init(void) {
     // 1. 开启调试跟踪组件（必开）
     CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
     
-    // 2. 解锁 DWT 访问（针对某些内核的规范操作）
-    // 虽然 F4 可能不需要，但加上这一行能防止在不同批次芯片上失效
-    //DWT->LAR = 0xC5ACCE55; 
-
     // 3. 计数器清零
     DWT->CYCCNT = 0;
 
@@ -331,7 +330,6 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc) {
 void HAL_DAC_ConvHalfCpltCallbackCh1(DAC_HandleTypeDef *hdac) {
     if (hdac->Instance == DAC) {
         if (key_flag == SYS_MODE_BASIC_2 || key_flag == SYS_MODE_BASIC_3 || key_flag == SYS_MODE_ADVANCED_1) {
-          //其实命名已经不再严谨，因为还完成了发挥1(状态6)，懒得改了
             SignalGen_DAC_HalfCpltCallback();
         }
     }

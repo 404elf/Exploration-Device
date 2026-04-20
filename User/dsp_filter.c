@@ -37,28 +37,12 @@ static float a1 = -1.20f, a2 = 0.40f;
 // 历史输入输出数据状态变量(Z域延时)
 static float x_n1 = 0.0f, x_n2 = 0.0f;
 static float y_n1 = 0.0f, y_n2 = 0.0f;
-/*
-//计算IIR系数
-void Calculate_IIR_Coeffs(void) {
-    //  计算常数 K = 2 * Fs（这里使用了简化的双线性置换法实现）
-    float K = 2.0f * SAMPLE_RATE;
-    float K_sq = K * K;
-    
-    // 对s进行双线性替换(s = K*(1-z^-1)/(1+z^-1))并展开，提取合并出对应各项中间系数
-    float den0 = A2_COEF * K_sq + A1_COEF * K + A0_COEF;
-    float den1 = 2.0f * A0_COEF - 2.0f * A2_COEF * K_sq;
-    float den2 = A2_COEF * K_sq - A1_COEF * K + A0_COEF;
-    
-    // 进行归一化处理(除以初项系数den0)后赋值给对应差分方程常系数
-    b0 = DC_GAIN / den0;
-    b1 = (2.0f * DC_GAIN) / den0;
-    b2 = DC_GAIN / den0;
-    
-    a1 = den1 / den0;
-    a2 = den2 / den0;
-}
-*/
+
 //主要的改动在这里！！！也就是该如何求解系数
+
+/**
+ * @brief 求解IIR差分的系数
+ */
 void Calculate_IIR_Coeffs(void) {
     if (identified_model.type == FILTER_UNKNOWN) return;
 
@@ -72,14 +56,13 @@ void Calculate_IIR_Coeffs(void) {
     if (w0 < 1.0f) w0 = 1000.0f;
 
     // 2. 根据公式提取S域通式：H(s) = (B2*s^2 + B1*s + B0) / (A2*s^2 + A1*s + A0)
-    // 观察你的截图可知，四种滤波器的分母是一模一样的：
     float A2 = 1.0f / (w0 * w0);
     float A1 = 1.0f / (Q * w0);
     float A0 = 1.0f;
     
     float B2 = 0.0f, B1 = 0.0f, B0 = 0.0f;
     
-    // 分子则根据滤波器的类型变化（完全对应你的理论图公式）
+    // 分子则根据滤波器的类型变化
     switch (identified_model.type) {
         case FILTER_LOW_PASS:
             B2 = 0.0f;         B1 = 0.0f;            B0 = G;
@@ -115,7 +98,7 @@ void Calculate_IIR_Coeffs(void) {
     float num1 = 2.0f * B0 - 2.0f * B2 * K_sq;
     float num2 = B2 * K_sq - B1 * K + B0;
     
-    // 4. 系数归一化，赋值给你的IIR差分数组
+    // 4. 系数归一化，赋值给IIR差分数组
     b0 = num0 / den0;
     b1 = num1 / den0;
     b2 = num2 / den0;
@@ -132,10 +115,10 @@ void Calculate_IIR_Coeffs(void) {
  */
 static void Process_IIR_Block(uint16_t* pIn, uint16_t* pOut, uint16_t length) {
     for (int i = 0; i < length; i++) {
-        // 提取被转化回实际对应的物理输入电压Vin的ADC数值
+        // 输入Vpp
         float x_n = (pIn[i] / 4095.0f) * 3.3f;
         
-        // 直接执行离散差分方程运算公式（实现IIR滤波核心运算）
+        // IIR离散差分方程
         float y_n = b0 * x_n + b1 * x_n1 + b2 * x_n2 - a1 * y_n1 - a2 * y_n2;
         
         // 状态更新（数据在Z域平移延位以备下一个点代入计算）
@@ -144,10 +127,10 @@ static void Process_IIR_Block(uint16_t* pIn, uint16_t* pOut, uint16_t length) {
         y_n2 = y_n1; 
         y_n1 = y_n;
         
-        // 将数字目标运算模拟电压重转换为12位DAC寄存器控制标度值
+        //DAC输出
         float dac_float = (y_n / 3.3f) * 4095.0f;
         
-        // 执行幅度硬限幅处理防止数值越过最大寄存器容量引发系统严重畸变
+        // 限幅操作
         if (dac_float > 4095.0f) dac_float = 4095.0f;
         if (dac_float < 0.0f) dac_float = 0.0f;
         
@@ -156,7 +139,7 @@ static void Process_IIR_Block(uint16_t* pIn, uint16_t* pOut, uint16_t length) {
 }
 
 /**
- * @brief 初始化滤波状态系统的缓存变量数据（不强制全0可在此设定初指）
+ * @brief 初始化差分方程初始状态
  */
 void Task4_Filter_Init(void) {
     //历史缓存清零
@@ -165,7 +148,7 @@ void Task4_Filter_Init(void) {
 }
 
 /**
- * @brief 启动系统流：依次打开DAC输出 -> 开启ADC采集启动更新 -> 启动触发系统的心跳源(TIM2定时器)
+ * @brief 启动系统，触发中断，系统自动执行
  */
 void Task4_Filter_Start(void) {
     __HAL_TIM_DISABLE(&htim2);
@@ -189,7 +172,7 @@ void Task4_Filter_Start(void) {
 }   
 
 /**
- * @brief 暂停处理计算系统接口：暂停控制心跳源定时器TIM2 -> 停用ADC采样DMA读取 -> 停止DAC波形输出驱动DMA
+ * @brief 暂停系统运行
  */
 void Task4_Filter_Stop(void) {
     // 停用ADC采样DMA读取与DAC波形输出驱动DMA
@@ -208,11 +191,12 @@ void IIR_Filter_ADC_FullCpltCallback(void) {
     Process_IIR_Block(&ADC_Buffer[FILTER_BUF_SIZE / 2], &DAC_Buffer[FILTER_BUF_SIZE / 2], FILTER_BUF_SIZE / 2);
 }
 
-
+/**
+ * 任务四：模拟已知模型电路
+ */
 void Task4_do(void){
     OLED_Clear();
     OLED_ShowCenterString("basictask4");
-    // 1. 根据题目要求，任务4是模拟“已知模型电路”
     // 使用宏定义的已知参数逆推出系统的谐振频率和Q值等，覆盖写入 identified_model
     identified_model.type = FILTER_LOW_PASS;
     identified_model.G = DC_GAIN;
@@ -224,17 +208,20 @@ void Task4_do(void){
     // 根据 A1 = 1/(Q*w0) 算出 Q
     identified_model.Q = 1.0f / (A1_COEF * w0);
     
-    // 2. 将模拟出的已知电路模型转化为 IIR 参数
+    // 将模拟出的已知电路模型转化为 IIR 参数
     Calculate_IIR_Coeffs();
     
-    // 3. 启动流水线
+    // 启动流水线
     Task4_Filter_Init();
     Task4_Filter_Start();
 }
-
+/**
+ * 发挥二：模拟未知模型电路
+ * 在发挥一中已经算出了HS，这里通过HS算出差分方程系数
+ */
 void Task6_do(void){
     Calculate_IIR_Coeffs();
-
+    
     Task4_Filter_Init();
     Task4_Filter_Start();
 }

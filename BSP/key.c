@@ -13,7 +13,7 @@ volatile float current_measured_freq = 5000.0f;
 volatile uint32_t now_time = 0;
 volatile uint32_t last_time = 0;
 
-volatile MachineTaskMode_t key_flag = SYS_MODE_BASIC_2;
+volatile MachineTaskMode_t key_flag = SYS_MODE_INIT;
 
 static void measure_freq(void);
 static void phase_restart(void);

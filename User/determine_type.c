@@ -148,10 +148,16 @@ void task6_do(void){
 
 FilterModel_t identified_model;
 
-// 辅助函数：线性插值找频率
-// f_prev: 上一个频率, g_prev: 上一步增益 > 目标增益
-// f_curr: 当前频率,   g_curr: 当前增益 < 目标增益
-// target_g: 目标寻找增益 (比如0.707倍某基准)
+
+/**
+ * @brief 线性插值找频率
+ * @param f_prev：上一个频率
+ * @param g_prev：上一步增益 (> 目标增益)
+ * @param f_curr：当前频率
+ * @param g_curr：当前增益 (< 目标增益)
+ * @param target_g：目标寻找增益 (比如0.707倍某基准)
+ * @retval 返回找到的频率
+ */
 static float Interpolate_Freq(float f_prev, float g_prev, float f_curr, float g_curr, float target_g) {
     if (g_prev == g_curr) return f_curr; // 防除零
     // Y - Y1 = ((Y2 - Y1) / (X2 - X1)) * (X - X1) 的变体求解 X
@@ -159,7 +165,9 @@ static float Interpolate_Freq(float f_prev, float g_prev, float f_curr, float g_
     return f_prev + ratio * (f_curr - f_prev);
 }
 
-// 核心逻辑(在你的 ISLUCK 的 else 中调用或平替)
+/**
+ * @brief 判断滤波器类型与HS参数，FilterModel_t
+ */
 void Identify_Filter_Model_HighRes(void) {
     float gain_curve[SWEEP_POINTS];
     float freq_array[SWEEP_POINTS];
