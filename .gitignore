@@ -26,3 +26,25 @@ DebugConfig/
 *.uvguix.*
 *.uvoptx
 *.uvprojx.user
+
+# --- 额外的 Keil 残留 ---
+*.bak
+*.tmp
+*.iex
+*.uvgui
+JLinkLog.txt
+
+# --- 编译中间目录 (如果组员改了默认输出路径) ---
+# 有些人喜欢把输出改名，这里加通配符兜底
+Intermediate/
+Output/
+
+# --- 操作系统文件 ---
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# --- 文本编辑器与工具临时文件 ---
+*.swp
+*.swo
+*~
