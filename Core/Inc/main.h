@@ -69,6 +69,10 @@ void Error_Handler(void);
 #define ZERO_CROSS_Pin GPIO_PIN_0
 #define ZERO_CROSS_GPIO_Port GPIOA
 #define ZERO_CROSS_EXTI_IRQn EXTI0_IRQn
+#define OLED_SCL_Pin GPIO_PIN_6
+#define OLED_SCL_GPIO_Port GPIOB
+#define OLED_SDA_Pin GPIO_PIN_7
+#define OLED_SDA_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
 
